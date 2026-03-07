@@ -139,12 +139,12 @@ private:
                                      std::filesystem::perms::owner_read | std::filesystem::perms::group_read);
     }
 
-    void read_cache_entry(const std::string& id, bool enable_mmap, StreamReader reader) override {
+    void read_cache_entry(const std::string& id, bool use_mmap, StreamReader reader) override {
         // Fix the bug caused by pugixml, which may return unexpected results if the locale is different from "C".
         ScopedLocale plocal_C(LC_ALL, "C");
         const auto blob_path = get_blob_file(id);
         if (std::filesystem::exists(blob_path)) {
-            if (enable_mmap) {
+            if (use_mmap) {
                 CompiledBlobVariant compiled_blob{std::in_place_index<0>, ov::read_tensor_data(blob_path)};
                 reader(compiled_blob);
             } else {

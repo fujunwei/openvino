@@ -240,6 +240,9 @@ Tensor read_tensor_data(ov::FileHandle file_handle,
                         const ov::PartialShape& partial_shape,
                         size_t offset_in_bytes) {
     OPENVINO_ASSERT(element_type != ov::element::string);
-    return read_tensor_data_mmap_impl(ov::load_mmap_object(file_handle), element_type, partial_shape, offset_in_bytes);
+    return read_tensor_data_mmap_impl(ov::load_mmap_object_from_handle(file_handle),
+                                      element_type,
+                                      partial_shape,
+                                      offset_in_bytes);
 }
 }  // namespace ov

@@ -1,0 +1,313 @@
+# Copyright (C) 2018-2026 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+import("//build/config/features.gni")
+
+config("warnings_config") {
+  cflags = [
+    # TODO(crbug.com/463723474): Try to clean/remove these suppressions if possible.
+    "-Wno-mismatched-tags",
+    "-Wno-implicit-const-int-float-conversion",
+    "-Wno-deprecated-declarations",
+    "-Wno-shadow",
+
+    # TODO(crbug.com/1147556): Try to clean/remove no-sign-compare if possible.
+    "-Wno-sign-compare",
+  ]
+  visibility = [ ":*" ]
+}
+
+config("openvino_config") {
+  include_dirs = [
+    # The src/core/src must be first to include the itt.hpp
+    "src/core/src",
+    "src/core/include",
+    "src/core/dev_api",
+    "src/inference/include",
+    "src/inference/dev_api",
+    "src/common/util/include",
+    "src/common/transformations/include",
+    "src/common/low_precision_transformations/include",
+    "src/common/offline_transformations/include",
+    "src/core/shape_inference/include",
+    "src/common/itt/include",
+    "src/common/conditional_compilation/include",
+    "src/common/conditional_compilation/include/openvino/cc",
+    "src/frontends/common/include",
+    "//third_party/pugixml/src",
+    "//third_party/xbyak",
+    "thirdparty/ittapi/include",
+    "third_party/oneTBB/include",
+    # Additional include dirs for source compilation
+    "src/inference/src",
+    "src/core/reference/include",
+    "src/common/util/src",
+    "src/common/transformations/src",
+    "thirdparty/nlohmann_json/include",
+  ]
+
+  defines = [
+    "IE_THREAD=IE_THREAD_TBB",
+    "IMPLEMENT_OPENVINO_RUNTIME_API",
+  ]
+
+  if (is_win) {
+    defines += [ "_CRT_SECURE_NO_WARNINGS" ]
+  }
+}
+
+config("openvino_internal_config") {
+  if (is_clang) {
+    cflags = [
+      "-Wno-extra-semi",
+      "-Wno-deprecated-declarations",
+      "-Wno-exit-time-destructors",
+    ]
+  }
+  if (is_win) {
+    cflags_cc = [ "/std:c++17" ]
+  } else {
+    cflags_cc = [ "-std=c++17" ]
+  }
+}
+
+# OpenVINO Runtime Core + Inference
+shared_library("openvino") {
+  output_name = "openvino"
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+
+  sources = [
+    # Core sources (examples, globbing usually preferred in GN if possible but often listed)
+    "src/core/src/any.cpp",
+    "src/core/src/attribute_visitor.cpp",
+    "src/core/src/coordinate.cpp",
+    "src/core/src/dimension.cpp",
+    "src/core/src/except.cpp",
+    "src/core/src/extension.cpp",
+    "src/core/src/graph_util.cpp",
+    "src/core/src/model.cpp",
+    "src/core/src/node.cpp",
+    "src/core/src/node_input.cpp",
+    "src/core/src/node_output.cpp",
+    "src/core/src/op/op.cpp",
+    "src/core/src/partial_shape.cpp",
+    "src/core/src/runtime/allocator.cpp",
+    "src/core/src/runtime/itensor.cpp",
+    "src/core/src/runtime/tensor.cpp",
+    "src/core/src/shape.cpp",
+    "src/core/src/strides.cpp",
+    "src/core/src/type.cpp",
+    "src/core/src/type/element_type.cpp",
+    "src/core/src/attribute_adapter.cpp",
+    "src/core/src/axis_set.cpp",
+    "src/core/src/axis_vector.cpp",
+    "src/core/src/bound_evaluate.cpp",
+    "src/core/src/constant_fold_utils.cpp",
+    "src/core/src/coordinate_diff.cpp",
+    "src/core/src/interval.cpp",
+    "src/core/src/layout.cpp",
+    "src/core/src/log.cpp",
+    "src/core/src/log_util.cpp",
+    "src/core/src/memory_util.cpp",
+    "src/core/src/rt_info.cpp",
+    "src/core/src/runtime_attribute.cpp",
+    "src/core/src/shape_util.cpp",
+    "src/core/src/so_extension.cpp",
+    "src/core/src/symbol.cpp",
+    "src/core/src/tensor_util.cpp",
+    "src/core/src/validation_util.cpp",
+    "src/core/src/version.cpp",
+
+    # op/util
+    "src/core/src/op/util/activation_functions.cpp",
+    "src/core/src/op/util/arithmetic_reduction.cpp",
+    "src/core/src/op/util/arithmetic_reductions_keep_dims.cpp",
+    "src/core/src/op/util/assign_base.cpp",
+    "src/core/src/op/util/attr_types.cpp",
+    "src/core/src/op/util/avg_pool_base.cpp",
+    "src/core/src/op/util/binary_elementwise_arithmetic.cpp",
+    "src/core/src/op/util/binary_elementwise_bitwise.cpp",
+    "src/core/src/op/util/binary_elementwise_comparison.cpp",
+    "src/core/src/op/util/binary_elementwise_logical.cpp",
+    "src/core/src/op/util/broadcast_base.cpp",
+    "src/core/src/op/util/convert_color_i420_base.cpp",
+    "src/core/src/op/util/convert_color_nv12_base.cpp",
+    "src/core/src/op/util/deformable_convolution_base.cpp",
+    "src/core/src/op/util/detection_output_base.cpp",
+    "src/core/src/op/util/elementwise_args.cpp",
+    "src/core/src/op/util/embeddingbag_offsets_base.cpp",
+    "src/core/src/op/util/embeddingbag_packed_base.cpp",
+    "src/core/src/op/util/fft_base.cpp",
+    "src/core/src/op/util/framework_node.cpp",
+    "src/core/src/op/util/gather_base.cpp",
+    "src/core/src/op/util/gather_nd_base.cpp",
+    "src/core/src/op/util/index_reduction.cpp",
+    "src/core/src/op/util/interpolate_base.cpp",
+    "src/core/src/op/util/logical_reduction.cpp",
+    "src/core/src/op/util/logical_reduction_keep_dims.cpp",
+    "src/core/src/op/util/max_pool_base.cpp",
+    "src/core/src/op/util/model_util.cpp",
+    "src/core/src/op/util/multiclass_nms_base.cpp",
+    "src/core/src/op/util/multi_subgraph_base.cpp",
+    "src/core/src/op/util/node_util.cpp",
+    "src/core/src/op/util/one_hot_base.cpp",
+    "src/core/src/op/util/op_types.cpp",
+    "src/core/src/op/util/pad_base.cpp",
+    "src/core/src/op/util/precision_sensitive_attribute.cpp",
+    "src/core/src/op/util/read_value_base.cpp",
+    "src/core/src/op/util/recurrent_sequence.cpp",
+    "src/core/src/op/util/reduction_base.cpp",
+    "src/core/src/op/util/rnn_cell_base.cpp",
+    "src/core/src/op/util/roi_align_base.cpp",
+    "src/core/src/op/util/scatter_base.cpp",
+    "src/core/src/op/util/scatter_elements_update_base.cpp",
+    "src/core/src/op/util/scatter_nd_base.cpp",
+    "src/core/src/op/util/slice_plan.cpp",
+    "src/core/src/op/util/squeeze_base.cpp",
+    "src/core/src/op/util/sub_graph_base.cpp",
+    "src/core/src/op/util/symbolic_info.cpp",
+    "src/core/src/op/util/topk_base.cpp",
+    "src/core/src/op/util/unary_elementwise_arithmetic.cpp",
+    "src/core/src/op/util/variable.cpp",
+    "src/core/src/op/util/variable_extension.cpp",
+    "src/core/src/op/util/variable_value.cpp",
+    "src/core/src/op/util/weightless_caching_attributes.cpp",
+
+    # descriptor
+    "src/core/src/descriptor/input.cpp",
+    "src/core/src/descriptor/output.cpp",
+    "src/core/src/descriptor/shared_tensor.cpp",
+    #"src/core/src/descriptor/tensor.cpp",
+
+    # runtime
+    "src/core/src/runtime/aligned_buffer.cpp",
+    "src/core/src/runtime/compute_hash.cpp",
+    "src/core/src/runtime/shared_buffer.cpp",
+    "src/core/src/runtime/string_aligned_buffer.cpp",
+
+    # type
+    "src/core/src/type/bfloat16.cpp",
+    "src/core/src/type/float16.cpp",
+    "src/core/src/type/float4_e2m1.cpp",
+    "src/core/src/type/float8_e4m3.cpp",
+    "src/core/src/type/float8_e5m2.cpp",
+    "src/core/src/type/float8_e8m0.cpp",
+    "src/core/src/type/nf4.cpp",
+    # many more core ops...
+
+    # Inference Engine sources
+    "src/inference/src/cpp/compiled_model.cpp",
+    "src/inference/src/cpp/core.cpp",
+    "src/inference/src/cpp/infer_request.cpp",
+    "src/inference/src/cpp/remote_context.cpp",
+    "src/inference/src/cpp/remote_tensor.cpp",
+    "src/inference/src/cpp/variable_state.cpp",
+    "src/inference/src/dev/core_impl.cpp",
+    "src/inference/src/dev/plugin.cpp",
+    "src/inference/src/dev/compilation_context.cpp",
+    "src/inference/src/dev/iplugin.cpp",
+    "src/inference/src/dev/icompiled_model.cpp",
+    "src/inference/src/dev/iasync_infer_request.cpp",
+    "src/inference/src/dev/isync_infer_request.cpp",
+    "src/inference/src/dev/ivariable_state.cpp",
+    "src/inference/src/dev/make_tensor.cpp",
+    # Transformations and utilities
+    "src/common/util/src/common_util.cpp",
+    "src/common/util/src/env_util.cpp",
+    "src/common/util/src/file_path.cpp",
+    "src/common/util/src/file_util.cpp",
+    #"src/common/util/src/log.cpp",
+    "src/common/util/src/weights_path.cpp",
+    "src/common/util/src/wstring_convert_util.cpp",
+    "src/common/util/src/xml_parse_utils.cpp",
+  ]
+
+  defines = [
+    "CI_BUILD_NUMBER=\"2026.1.0-chromium\"",
+    "OpenVINO_VERSION=\"2026.1.0\"",
+    "OV_NATIVE_PARENT_PROJECT_ROOT_DIR=\"openvino\"",
+    "IMPLEMENT_OPENVINO_API",
+    "IN_OV_CORE_LIBRARY",
+    "IN_OV_COMPONENT",
+  ]
+
+  deps = [
+    # TBB, nlohmann_json, pugixml, etc.
+    "//third_party/pugixml",
+    "//third_party/oneTBB:tbb",
+    "//third_party/xbyak",
+  ]
+}
+
+# OpenVINO CPU Plugin
+shared_library("openvino_intel_cpu_plugin") {
+  output_name = "openvino_intel_cpu_plugin"
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+  ]
+
+  include_dirs = [
+    "src/plugins/intel_cpu/src",
+    "src/plugins/intel_cpu/include",
+    "thirdparty/onednn/include",
+    "thirdparty/onednn/src",
+  ]
+
+  sources = [
+    "src/plugins/intel_cpu/src/plugin.cpp",
+    "src/plugins/intel_cpu/src/compiled_model.cpp",
+    "src/plugins/intel_cpu/src/infer_request.cpp",
+    "src/plugins/intel_cpu/src/async_infer_request.cpp",
+    "src/plugins/intel_cpu/src/config.cpp",
+    "src/plugins/intel_cpu/src/graph.cpp",
+    "src/plugins/intel_cpu/src/graph_context.cpp",
+    "src/plugins/intel_cpu/src/graph_optimizer.cpp",
+    "src/plugins/intel_cpu/src/graph_dumper.cpp",
+    "src/plugins/intel_cpu/src/cpu_memory.cpp",
+    "src/plugins/intel_cpu/src/cpu_shape.cpp",
+    "src/plugins/intel_cpu/src/cpu_tensor.cpp",
+    "src/plugins/intel_cpu/src/cpu_types.cpp",
+    "src/plugins/intel_cpu/src/edge.cpp",
+    "src/plugins/intel_cpu/src/node.cpp",
+    "src/plugins/intel_cpu/src/nodes/convolution.cpp",
+    "src/plugins/intel_cpu/src/nodes/eltwise.cpp",
+    "src/plugins/intel_cpu/src/nodes/fullyconnected.cpp",
+    "src/plugins/intel_cpu/src/nodes/input.cpp",
+    "src/plugins/intel_cpu/src/nodes/matmul.cpp",
+    "src/plugins/intel_cpu/src/nodes/pooling.cpp",
+    "src/plugins/intel_cpu/src/nodes/reorder.cpp",
+    "src/plugins/intel_cpu/src/nodes/reshape.cpp",
+    "src/plugins/intel_cpu/src/nodes/softmax.cpp",
+    # many more CPU plugin nodes, emitters, and executors...
+
+    "src/plugins/intel_cpu/src/onednn/dnnl.cpp",
+    "src/plugins/intel_cpu/src/onednn/iml_type_mapper.cpp",
+    "src/plugins/intel_cpu/src/mlas/sgemm.cpp",
+    "src/plugins/intel_cpu/src/mlas/thread_pool.cpp",
+  ]
+
+  defines = [
+    "IMPLEMENT_OPENVINO_API",
+    "OV_PLUGIN",
+  ]
+
+  deps = [
+    ":openvino",
+    # oneDNN, mlas, etc.
+  ]
+}
