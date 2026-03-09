@@ -202,10 +202,22 @@ source_set("openvino_pass") {
   ]
 
   sources = [
+    "src/core/src/pass/constant_folding.cpp",
+    "src/core/src/pass/convert_fp32_to_fp16.cpp",
+    "src/core/src/pass/graph_rewrite.cpp",
+    "src/core/src/pass/low_latency.cpp",
+    "src/core/src/pass/make_stateful.cpp",
     "src/core/src/pass/manager.cpp",
+    "src/core/src/pass/node_registry.cpp",
     "src/core/src/pass/pass.cpp",
     "src/core/src/pass/pass_config.cpp",
+    "src/core/src/pass/perf_counters.cpp",
+    "src/core/src/pass/sdpa_to_paged_attention.cpp",
+    "src/core/src/pass/sdpa_to_vlsdpa.cpp",
+    "src/core/src/pass/serialize.cpp",
+    "src/core/src/pass/stateful_to_stateless.cpp",
     "src/core/src/pass/validate.cpp",
+    "src/core/src/pass/visualize_tree.cpp",
   ]
 
   defines = [
@@ -278,6 +290,7 @@ source_set("openvino_runtime") {
   }
 
   defines = [
+    "IMPLEMENT_OPENVINO_API",
     "IMPLEMENT_OPENVINO_RUNTIME_API",
   ]
 }
@@ -633,9 +646,8 @@ source_set("openvino_descriptor") {
   ]
 }
 
-# OpenVINO Runtime Core + Inference
-shared_library("openvino") {
-  output_name = "openvino"
+# OpenVINO Pattern
+source_set("openvino_pattern") {
   configs += [
     ":openvino_config",
     ":openvino_internal_config",
@@ -653,51 +665,82 @@ shared_library("openvino") {
   ]
 
   sources = [
-    # Core sources (examples, globbing usually preferred in GN if possible but often listed)
+    "src/core/src/pattern/matcher.cpp",
+    "src/core/src/pattern/multi_matcher.cpp",
+    "src/core/src/pattern/op/any_of.cpp",
+    "src/core/src/pattern/op/any_output.cpp",
+    "src/core/src/pattern/op/block.cpp",
+    "src/core/src/pattern/op/label.cpp",
+    "src/core/src/pattern/op/op.cpp",
+    "src/core/src/pattern/op/optional.cpp",
+    "src/core/src/pattern/op/or.cpp",
+    "src/core/src/pattern/op/pattern.cpp",
+    "src/core/src/pattern/op/predicate.cpp",
+    "src/core/src/pattern/op/true.cpp",
+    "src/core/src/pattern/op/wrap_type.cpp",
+  ]
+
+  defines = [
+    "IMPLEMENT_OPENVINO_API",
+    "IN_OV_CORE_LIBRARY",
+  ]
+}
+
+# OpenVINO Core Sources
+source_set("openvino_core_sources") {
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+
+  sources = [
     "src/core/src/any.cpp",
-    "src/core/src/attribute_visitor.cpp",
-    "src/core/src/coordinate.cpp",
-    "src/core/src/dimension.cpp",
-    "src/core/src/except.cpp",
-    "src/core/src/extension.cpp",
-    "src/core/src/graph_util.cpp",
-    "src/core/src/model.cpp",
-    "src/core/src/node.cpp",
-    "src/core/src/node_input.cpp",
-    "src/core/src/node_output.cpp",
-    "src/core/src/node_vector.cpp",
-    "src/core/src/partial_shape.cpp",
-    "src/core/src/preprocess/color_utils.cpp",
-    "src/core/src/preprocess/pre_post_process.cpp",
-    "src/core/src/preprocess/preprocess_impls.cpp",
-    "src/core/src/preprocess/preprocess_steps_impl.cpp",
-    "src/core/src/runtime/allocator.cpp",
-    "src/core/src/runtime/itensor.cpp",
-    "src/core/src/runtime/tensor.cpp",
-    "src/core/src/shape.cpp",
-    "src/core/src/strides.cpp",
-    "src/core/src/type.cpp",
-    "src/core/src/type/element_type.cpp",
     "src/core/src/attribute_adapter.cpp",
+    "src/core/src/attribute_visitor.cpp",
     "src/core/src/axis_set.cpp",
     "src/core/src/axis_vector.cpp",
     "src/core/src/bound_evaluate.cpp",
     "src/core/src/constant_fold_utils.cpp",
+    "src/core/src/coordinate.cpp",
     "src/core/src/coordinate_diff.cpp",
+    "src/core/src/dimension.cpp",
+    "src/core/src/except.cpp",
+    "src/core/src/extension.cpp",
+    "src/core/src/graph_util.cpp",
     "src/core/src/interval.cpp",
     "src/core/src/layout.cpp",
     "src/core/src/log.cpp",
     "src/core/src/log_util.cpp",
     "src/core/src/memory_util.cpp",
+    "src/core/src/model.cpp",
+    "src/core/src/node.cpp",
+    "src/core/src/node_input.cpp",
+    "src/core/src/node_output.cpp",
+    "src/core/src/node_vector.cpp",
+    "src/core/src/opsets/opset.cpp",
+    "src/core/src/partial_shape.cpp",
     "src/core/src/rt_info.cpp",
     "src/core/src/runtime_attribute.cpp",
+    "src/core/src/shape.cpp",
     "src/core/src/shape_util.cpp",
     "src/core/src/so_extension.cpp",
+    "src/core/src/strides.cpp",
     "src/core/src/symbol.cpp",
     "src/core/src/tensor_util.cpp",
+    "src/core/src/type.cpp",
     "src/core/src/validation_util.cpp",
     "src/core/src/version.cpp",
-    "src/core/shape_inference/src/tensor_data_accessor.cpp",
 
     # op/util
     "src/core/src/op/util/activation_functions.cpp",
@@ -965,24 +1008,71 @@ shared_library("openvino") {
     "src/core/src/op/variadic_split.cpp",
     "src/core/src/op/xor.cpp",
 
+    # preprocess
+    "src/core/src/preprocess/color_utils.cpp",
+    "src/core/src/preprocess/pre_post_process.cpp",
+    "src/core/src/preprocess/preprocess_impls.cpp",
+    "src/core/src/preprocess/preprocess_steps_impl.cpp",
+
     # runtime
     "src/core/src/runtime/aligned_buffer.cpp",
+    "src/core/src/runtime/allocator.cpp",
     "src/core/src/runtime/compute_hash.cpp",
+    "src/core/src/runtime/itensor.cpp",
     "src/core/src/runtime/shared_buffer.cpp",
     "src/core/src/runtime/string_aligned_buffer.cpp",
+    "src/core/src/runtime/tensor.cpp",
 
     # type
     "src/core/src/type/bfloat16.cpp",
+    "src/core/src/type/element_type.cpp",
     "src/core/src/type/float16.cpp",
     "src/core/src/type/float4_e2m1.cpp",
     "src/core/src/type/float8_e4m3.cpp",
     "src/core/src/type/float8_e5m2.cpp",
     "src/core/src/type/float8_e8m0.cpp",
     "src/core/src/type/nf4.cpp",
-    # many more core ops...
 
-    # Core opsets
-    "src/core/src/opsets/opset.cpp",
+    # xml_util
+    "src/core/src/xml_util/constant_writer.cpp",
+    "src/core/src/xml_util/xml_serialize_util.cpp",
+
+    # shape_inference
+    "src/core/shape_inference/src/convolution_shape_inference.cpp",
+    "src/core/shape_inference/src/experimental_detectron_shape_infer_utils.cpp",
+    "src/core/shape_inference/src/tensor_data_accessor.cpp",
+    "src/core/shape_inference/src/utils.cpp",
+  ]
+
+  defines = [
+    "CI_BUILD_NUMBER=\"2026.1.0-chromium\"",
+    "IMPLEMENT_OPENVINO_API",
+    "IN_OV_CORE_LIBRARY",
+    "IN_OV_COMPONENT",
+  ]
+}
+
+# OpenVINO Runtime Core + Inference
+shared_library("openvino") {
+  output_name = "openvino"
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+
+  sources = [
+    # Core sources are provided by openvino_core_sources
 
     # ITT
     "src/common/itt/src/itt.cpp",
@@ -1012,13 +1102,10 @@ shared_library("openvino") {
   ]
 
   defines = [
-    "CI_BUILD_NUMBER=\"2026.1.0-chromium\"",
+    "IMPLEMENT_OPENVINO_API",
+    "FRONTEND_LIB_PREFIX=\"openvino_\"",
     "OpenVINO_VERSION=\"2026.1.0\"",
     "OV_NATIVE_PARENT_PROJECT_ROOT_DIR=\"openvino\"",
-    "IMPLEMENT_OPENVINO_API",
-    "IN_OV_CORE_LIBRARY",
-    "IN_OV_COMPONENT",
-    "FRONTEND_LIB_PREFIX=\"openvino_\"",
   ]
 
   if (is_debug) {
@@ -1028,8 +1115,10 @@ shared_library("openvino") {
   }
 
   deps = [
+    ":openvino_core_sources",
     ":openvino_descriptor",
     ":openvino_pass",
+    ":openvino_pattern",
     ":openvino_reference",
     ":openvino_reference_utils",
     ":openvino_runtime",
