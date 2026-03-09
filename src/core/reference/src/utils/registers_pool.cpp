@@ -78,7 +78,7 @@ size_t RegistersPool::PhysicalSet::get_unused(size_t requested_idx) {
 
 size_t RegistersPool::PhysicalSet::count_unused() const {
     size_t count = 0;
-    for (const auto& isFree : m_is_free_index_vector) {
+    for (auto isFree : m_is_free_index_vector) {
         if (isFree) {
             ++count;
         }

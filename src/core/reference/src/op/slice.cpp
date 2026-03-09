@@ -84,7 +84,7 @@ void slice(const char* arg,
 
     auto dst_mem = out;
 
-    for (const auto& range : coordinates::slice(arg_shape, lower_bounds, upper_bounds, strides)) {
+    for (auto range : coordinates::slice(arg_shape, lower_bounds, upper_bounds, strides)) {
         auto src_index = range.begin_index;
         for (size_t i = 0; i < range.element_number; src_index += range.step, ++i) {
             const auto src_mem = arg + src_index * elem_size;

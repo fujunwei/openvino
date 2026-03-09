@@ -29,6 +29,7 @@ config("openvino_config") {
     "src/common/transformations/include",
     "src/common/low_precision_transformations/include",
     "src/common/offline_transformations/include",
+    "src/common/shutdown/include",
     "src/core/shape_inference/include",
     "src/common/itt/include",
     "src/common/conditional_compilation/include",
@@ -43,12 +44,13 @@ config("openvino_config") {
     "src/core/reference/include",
     "src/common/util/src",
     "src/common/transformations/src",
-    "thirdparty/nlohmann_json/include",
+    "//third_party/nlohmann_json/src/include",
   ]
 
   defines = [
     "IE_THREAD=IE_THREAD_TBB",
     "IMPLEMENT_OPENVINO_RUNTIME_API",
+    "__TBB_NO_IMPLICIT_LINKAGE=1",
   ]
 
   if (is_win) {
@@ -69,6 +71,178 @@ config("openvino_internal_config") {
   } else {
     cflags_cc = [ "-std=c++17" ]
   }
+}
+
+# OpenVINO Reference
+source_set("openvino_reference") {
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+
+  include_dirs = [
+    "src/core/reference/include",
+    "//third_party/oneTBB/include",
+  ]
+
+  sources = [
+    "src/core/reference/src/op/broadcast.cpp",
+    "src/core/reference/src/op/concat.cpp",
+    "src/core/reference/src/op/convert.cpp",
+    "src/core/reference/src/op/depth_to_space.cpp",
+    "src/core/reference/src/op/einsum.cpp",
+    "src/core/reference/src/op/experimental_detectron_detection_output.cpp",
+    "src/core/reference/src/op/experimental_detectron_proposal_single_image.cpp",
+    "src/core/reference/src/op/experimental_detectron_roi_feature_extractor.cpp",
+    "src/core/reference/src/op/fake_convert.cpp",
+    "src/core/reference/src/op/fft.cpp",
+    "src/core/reference/src/op/function.cpp",
+    "src/core/reference/src/op/gather_tree.cpp",
+    "src/core/reference/src/op/generate_proposal.cpp",
+    "src/core/reference/src/op/group_convolution.cpp",
+    "src/core/reference/src/op/group_convolution_backprop_data.cpp",
+    "src/core/reference/src/op/if.cpp",
+    "src/core/reference/src/op/interpolate.cpp",
+    "src/core/reference/src/op/inverse.cpp",
+    "src/core/reference/src/op/irdft.cpp",
+    "src/core/reference/src/op/istft.cpp",
+    "src/core/reference/src/op/loop.cpp",
+    "src/core/reference/src/op/matmul.cpp",
+    "src/core/reference/src/op/matrix_nms.cpp",
+    "src/core/reference/src/op/multiclass_nms.cpp",
+    "src/core/reference/src/op/nms_rotated.cpp",
+    "src/core/reference/src/op/non_max_suppression.cpp",
+    "src/core/reference/src/op/pad.cpp",
+    "src/core/reference/src/op/random_uniform.cpp",
+    "src/core/reference/src/op/rdft.cpp",
+    "src/core/reference/src/op/reorg_yolo.cpp",
+    "src/core/reference/src/op/reshape.cpp",
+    "src/core/reference/src/op/reverse.cpp",
+    "src/core/reference/src/op/shuffle_channels.cpp",
+    "src/core/reference/src/op/slice.cpp",
+    "src/core/reference/src/op/space_to_depth.cpp",
+    "src/core/reference/src/op/split.cpp",
+    "src/core/reference/src/op/stft.cpp",
+    "src/core/reference/src/op/strided_slice.cpp",
+    "src/core/reference/src/op/tensor_iterator.cpp",
+    "src/core/reference/src/op/tile.cpp",
+    "src/core/reference/src/op/transpose.cpp",
+    "src/core/reference/src/op/utils/fft_common.cpp",
+    "src/core/reference/src/op/utils/nms_common.cpp",
+    "src/core/reference/src/op/utils/rounding_guard.cpp",
+  ]
+
+  defines = [
+    "IMPLEMENT_OPENVINO_API",
+    "IN_OV_CORE_LIBRARY",
+  ]
+}
+
+# OpenVINO Reference Utils
+source_set("openvino_reference_utils") {
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+
+  sources = [
+    "src/core/reference/src/utils/coordinate_index.cpp",
+    "src/core/reference/src/utils/coordinate_range.cpp",
+    "src/core/reference/src/utils/coordinate_transform.cpp",
+    "src/core/reference/src/utils/jit_generator.cpp",
+    "src/core/reference/src/utils/philox_converter.cpp",
+    "src/core/reference/src/utils/philox_generator.cpp",
+    "src/core/reference/src/utils/registers_pool.cpp",
+  ]
+
+  defines = [
+    "IMPLEMENT_OPENVINO_API",
+    "IN_OV_CORE_LIBRARY",
+  ]
+}
+
+# OpenVINO Pass
+source_set("openvino_pass") {
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+
+  sources = [
+    "src/core/src/pass/manager.cpp",
+    "src/core/src/pass/pass.cpp",
+    "src/core/src/pass/pass_config.cpp",
+    "src/core/src/pass/validate.cpp",
+  ]
+
+  defines = [
+    "IMPLEMENT_OPENVINO_API",
+    "IN_OV_CORE_LIBRARY",
+  ]
+}
+
+# OpenVINO Descriptor
+source_set("openvino_descriptor") {
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+
+  sources = [
+    "src/core/src/descriptor/input.cpp",
+    "src/core/src/descriptor/output.cpp",
+    "src/core/src/descriptor/shared_tensor.cpp",
+    "src/core/src/descriptor/tensor.cpp",
+  ]
+
+  defines = [
+    "IMPLEMENT_OPENVINO_API",
+    "IN_OV_CORE_LIBRARY",
+  ]
 }
 
 # OpenVINO Runtime Core + Inference
@@ -103,8 +277,12 @@ shared_library("openvino") {
     "src/core/src/node.cpp",
     "src/core/src/node_input.cpp",
     "src/core/src/node_output.cpp",
-    "src/core/src/op/op.cpp",
+    "src/core/src/node_vector.cpp",
     "src/core/src/partial_shape.cpp",
+    "src/core/src/preprocess/color_utils.cpp",
+    "src/core/src/preprocess/pre_post_process.cpp",
+    "src/core/src/preprocess/preprocess_impls.cpp",
+    "src/core/src/preprocess/preprocess_steps_impl.cpp",
     "src/core/src/runtime/allocator.cpp",
     "src/core/src/runtime/itensor.cpp",
     "src/core/src/runtime/tensor.cpp",
@@ -131,6 +309,7 @@ shared_library("openvino") {
     "src/core/src/tensor_util.cpp",
     "src/core/src/validation_util.cpp",
     "src/core/src/version.cpp",
+    "src/core/shape_inference/src/tensor_data_accessor.cpp",
 
     # op/util
     "src/core/src/op/util/activation_functions.cpp",
@@ -187,11 +366,216 @@ shared_library("openvino") {
     "src/core/src/op/util/variable_value.cpp",
     "src/core/src/op/util/weightless_caching_attributes.cpp",
 
-    # descriptor
-    "src/core/src/descriptor/input.cpp",
-    "src/core/src/descriptor/output.cpp",
-    "src/core/src/descriptor/shared_tensor.cpp",
-    #"src/core/src/descriptor/tensor.cpp",
+    # op
+    "src/core/src/op/abs.cpp",
+    "src/core/src/op/acos.cpp",
+    "src/core/src/op/acosh.cpp",
+    "src/core/src/op/adaptive_avg_pool.cpp",
+    "src/core/src/op/adaptive_max_pool.cpp",
+    "src/core/src/op/add.cpp",
+    "src/core/src/op/asin.cpp",
+    "src/core/src/op/asinh.cpp",
+    "src/core/src/op/assign.cpp",
+    "src/core/src/op/atan.cpp",
+    "src/core/src/op/atanh.cpp",
+    "src/core/src/op/avg_pool.cpp",
+    "src/core/src/op/batch_norm.cpp",
+    "src/core/src/op/batch_to_space.cpp",
+    "src/core/src/op/binary_convolution.cpp",
+    "src/core/src/op/bitwise_and.cpp",
+    "src/core/src/op/bitwise_left_shift.cpp",
+    "src/core/src/op/bitwise_not.cpp",
+    "src/core/src/op/bitwise_or.cpp",
+    "src/core/src/op/bitwise_right_shift.cpp",
+    "src/core/src/op/bitwise_xor.cpp",
+    "src/core/src/op/broadcast.cpp",
+    "src/core/src/op/bucketize.cpp",
+    "src/core/src/op/ceiling.cpp",
+    "src/core/src/op/clamp.cpp",
+    "src/core/src/op/col2im.cpp",
+    "src/core/src/op/concat.cpp",
+    "src/core/src/op/constant.cpp",
+    "src/core/src/op/convert.cpp",
+    "src/core/src/op/convert_like.cpp",
+    "src/core/src/op/convert_promote_types.cpp",
+    "src/core/src/op/convolution.cpp",
+    "src/core/src/op/cos.cpp",
+    "src/core/src/op/cosh.cpp",
+    "src/core/src/op/ctc_greedy_decoder.cpp",
+    "src/core/src/op/ctc_greedy_decoder_seq_len.cpp",
+    "src/core/src/op/ctc_loss.cpp",
+    "src/core/src/op/cum_sum.cpp",
+    "src/core/src/op/deformable_convolution.cpp",
+    "src/core/src/op/deformable_psroi_pooling.cpp",
+    "src/core/src/op/depth_to_space.cpp",
+    "src/core/src/op/detection_output.cpp",
+    "src/core/src/op/dft.cpp",
+    "src/core/src/op/divide.cpp",
+    "src/core/src/op/einsum.cpp",
+    "src/core/src/op/elu.cpp",
+    "src/core/src/op/embedding_segments_sum.cpp",
+    "src/core/src/op/embeddingbag_offsets.cpp",
+    "src/core/src/op/embeddingbag_offsets_sum.cpp",
+    "src/core/src/op/embeddingbag_packed.cpp",
+    "src/core/src/op/embeddingbag_packedsum.cpp",
+    "src/core/src/op/equal.cpp",
+    "src/core/src/op/erf.cpp",
+    "src/core/src/op/exp.cpp",
+    "src/core/src/op/experimental_detectron_detection_output.cpp",
+    "src/core/src/op/experimental_detectron_generate_proposals.cpp",
+    "src/core/src/op/experimental_detectron_prior_grid_generator.cpp",
+    "src/core/src/op/experimental_detectron_roi_feature.cpp",
+    "src/core/src/op/experimental_detectron_topkrois.cpp",
+    "src/core/src/op/extractimagepatches.cpp",
+    "src/core/src/op/eye.cpp",
+    "src/core/src/op/fake_convert.cpp",
+    "src/core/src/op/fake_quantize.cpp",
+    "src/core/src/op/floor.cpp",
+    "src/core/src/op/floor_mod.cpp",
+    "src/core/src/op/gather.cpp",
+    "src/core/src/op/gather_elements.cpp",
+    "src/core/src/op/gather_nd.cpp",
+    "src/core/src/op/gather_tree.cpp",
+    "src/core/src/op/gelu.cpp",
+    "src/core/src/op/generate_proposals.cpp",
+    "src/core/src/op/greater.cpp",
+    "src/core/src/op/greater_eq.cpp",
+    "src/core/src/op/grid_sample.cpp",
+    "src/core/src/op/grn.cpp",
+    "src/core/src/op/group_conv.cpp",
+    "src/core/src/op/group_normalization.cpp",
+    "src/core/src/op/group_query_attention.cpp",
+    "src/core/src/op/gru_cell.cpp",
+    "src/core/src/op/gru_sequence.cpp",
+    "src/core/src/op/hard_sigmoid.cpp",
+    "src/core/src/op/hsigmoid.cpp",
+    "src/core/src/op/hswish.cpp",
+    "src/core/src/op/i420_to_bgr.cpp",
+    "src/core/src/op/i420_to_rgb.cpp",
+    "src/core/src/op/identity.cpp",
+    "src/core/src/op/idft.cpp",
+    "src/core/src/op/if.cpp",
+    "src/core/src/op/interpolate.cpp",
+    "src/core/src/op/inverse.cpp",
+    "src/core/src/op/irdft.cpp",
+    "src/core/src/op/is_finite.cpp",
+    "src/core/src/op/is_inf.cpp",
+    "src/core/src/op/is_nan.cpp",
+    "src/core/src/op/istft.cpp",
+    "src/core/src/op/less.cpp",
+    "src/core/src/op/less_eq.cpp",
+    #"src/core/src/op/log.cpp",
+    "src/core/src/op/log_softmax.cpp",
+    "src/core/src/op/logical_and.cpp",
+    "src/core/src/op/logical_not.cpp",
+    "src/core/src/op/logical_or.cpp",
+    "src/core/src/op/loop.cpp",
+    "src/core/src/op/lrn.cpp",
+    "src/core/src/op/lstm_cell.cpp",
+    "src/core/src/op/lstm_sequence.cpp",
+    "src/core/src/op/matmul.cpp",
+    "src/core/src/op/matrix_nms.cpp",
+    "src/core/src/op/max_pool.cpp",
+    "src/core/src/op/maximum.cpp",
+    "src/core/src/op/minimum.cpp",
+    "src/core/src/op/mish.cpp",
+    "src/core/src/op/mod.cpp",
+    "src/core/src/op/moe.cpp",
+    "src/core/src/op/multiclass_nms.cpp",
+    "src/core/src/op/multinomial.cpp",
+    "src/core/src/op/multiply.cpp",
+    "src/core/src/op/mvn.cpp",
+    "src/core/src/op/negative.cpp",
+    "src/core/src/op/nms_rotated.cpp",
+    "src/core/src/op/non_max_suppression.cpp",
+    "src/core/src/op/non_zero.cpp",
+    "src/core/src/op/normalize_l2.cpp",
+    "src/core/src/op/not_equal.cpp",
+    "src/core/src/op/nv12_to_bgr.cpp",
+    "src/core/src/op/nv12_to_rgb.cpp",
+    "src/core/src/op/one_hot.cpp",
+    "src/core/src/op/op.cpp",
+    "src/core/src/op/pad.cpp",
+    "src/core/src/op/paged_attention.cpp",
+    "src/core/src/op/parameter.cpp",
+    "src/core/src/op/power.cpp",
+    "src/core/src/op/prelu.cpp",
+    "src/core/src/op/prior_box.cpp",
+    "src/core/src/op/prior_box_clustered.cpp",
+    "src/core/src/op/proposal.cpp",
+    "src/core/src/op/psroi_pooling.cpp",
+    "src/core/src/op/random_uniform.cpp",
+    "src/core/src/op/range.cpp",
+    "src/core/src/op/rdft.cpp",
+    "src/core/src/op/read_value.cpp",
+    "src/core/src/op/reduce_l1.cpp",
+    "src/core/src/op/reduce_l2.cpp",
+    "src/core/src/op/reduce_logical_and.cpp",
+    "src/core/src/op/reduce_logical_or.cpp",
+    "src/core/src/op/reduce_max.cpp",
+    "src/core/src/op/reduce_mean.cpp",
+    "src/core/src/op/reduce_min.cpp",
+    "src/core/src/op/reduce_prod.cpp",
+    "src/core/src/op/reduce_sum.cpp",
+    "src/core/src/op/region_yolo.cpp",
+    "src/core/src/op/relu.cpp",
+    "src/core/src/op/reorg_yolo.cpp",
+    "src/core/src/op/reshape.cpp",
+    "src/core/src/op/result.cpp",
+    "src/core/src/op/reverse.cpp",
+    "src/core/src/op/reverse_sequence.cpp",
+    "src/core/src/op/rms_norm.cpp",
+    "src/core/src/op/rnn_cell.cpp",
+    "src/core/src/op/rnn_sequence.cpp",
+    "src/core/src/op/roi_align.cpp",
+    "src/core/src/op/roi_align_rotated.cpp",
+    "src/core/src/op/roi_pooling.cpp",
+    "src/core/src/op/roll.cpp",
+    "src/core/src/op/round.cpp",
+    "src/core/src/op/scaled_dot_product_attention.cpp",
+    "src/core/src/op/scatter_elements_update.cpp",
+    "src/core/src/op/scatter_nd_update.cpp",
+    "src/core/src/op/scatter_update.cpp",
+    "src/core/src/op/search_sorted.cpp",
+    "src/core/src/op/segment_max.cpp",
+    "src/core/src/op/select.cpp",
+    "src/core/src/op/selu.cpp",
+    "src/core/src/op/shape_of.cpp",
+    "src/core/src/op/shuffle_channels.cpp",
+    "src/core/src/op/sigmoid.cpp",
+    "src/core/src/op/sign.cpp",
+    "src/core/src/op/sin.cpp",
+    "src/core/src/op/sinh.cpp",
+    "src/core/src/op/sink.cpp",
+    "src/core/src/op/slice.cpp",
+    "src/core/src/op/slice_scatter.cpp",
+    "src/core/src/op/softmax.cpp",
+    "src/core/src/op/softplus.cpp",
+    "src/core/src/op/softsign.cpp",
+    "src/core/src/op/space_to_batch.cpp",
+    "src/core/src/op/space_to_depth.cpp",
+    "src/core/src/op/sparse_fill_empty_rows.cpp",
+    "src/core/src/op/split.cpp",
+    "src/core/src/op/sqrt.cpp",
+    "src/core/src/op/squared_difference.cpp",
+    "src/core/src/op/squeeze.cpp",
+    "src/core/src/op/stft.cpp",
+    "src/core/src/op/strided_slice.cpp",
+    "src/core/src/op/string_tensor_pack.cpp",
+    "src/core/src/op/string_tensor_unpack.cpp",
+    "src/core/src/op/subtract.cpp",
+    "src/core/src/op/swish.cpp",
+    "src/core/src/op/tan.cpp",
+    "src/core/src/op/tanh.cpp",
+    "src/core/src/op/tensor_iterator.cpp",
+    "src/core/src/op/tile.cpp",
+    "src/core/src/op/topk.cpp",
+    "src/core/src/op/transpose.cpp",
+    "src/core/src/op/type_relaxed.cpp",
+    "src/core/src/op/unique.cpp",
+    "src/core/src/op/unsqueeze.cpp",
+    "src/core/src/op/variadic_split.cpp",
+    "src/core/src/op/xor.cpp",
 
     # runtime
     "src/core/src/runtime/aligned_buffer.cpp",
@@ -212,6 +596,7 @@ shared_library("openvino") {
     # Inference Engine sources
     "src/inference/src/cpp/compiled_model.cpp",
     "src/inference/src/cpp/core.cpp",
+    "src/inference/src/model_reader.cpp",
     "src/inference/src/cpp/infer_request.cpp",
     "src/inference/src/cpp/remote_context.cpp",
     "src/inference/src/cpp/remote_tensor.cpp",
@@ -225,6 +610,29 @@ shared_library("openvino") {
     "src/inference/src/dev/isync_infer_request.cpp",
     "src/inference/src/dev/ivariable_state.cpp",
     "src/inference/src/dev/make_tensor.cpp",
+    "src/inference/src/dev/plugin_config.cpp",
+    "src/inference/src/dev/device_id_parser.cpp",
+    "src/inference/src/dev/performance_heuristics.cpp",
+
+    # Threading
+    "src/inference/src/dev/threading/cpu_message.cpp",
+    "src/inference/src/dev/threading/cpu_streams_executor.cpp",
+    "src/inference/src/dev/threading/cpu_streams_executor_internal.cpp",
+    "src/inference/src/dev/threading/executor_manager.cpp",
+    "src/inference/src/dev/threading/istreams_executor.cpp",
+    "src/inference/src/dev/threading/itask_executor.cpp",
+    "src/inference/src/dev/threading/parallel_custom_arena.cpp",
+    "src/inference/src/dev/threading/thread_affinity.cpp",
+
+    # Core opsets
+    "src/core/src/opsets/opset.cpp",
+
+    # ITT
+    "src/common/itt/src/itt.cpp",
+
+    # Shutdown
+    "src/common/shutdown/shutdown.cpp",
+
     # Transformations and utilities
     "src/common/util/src/common_util.cpp",
     "src/common/util/src/env_util.cpp",
@@ -234,6 +642,16 @@ shared_library("openvino") {
     "src/common/util/src/weights_path.cpp",
     "src/common/util/src/wstring_convert_util.cpp",
     "src/common/util/src/xml_parse_utils.cpp",
+    "src/common/util/src/os/win/win_shared_object_loader.cpp",
+
+    # Frontend common
+    "src/frontends/common/src/manager.cpp",
+    "src/frontends/common/src/frontend.cpp",
+    "src/frontends/common/src/input_model.cpp",
+    "src/frontends/common/src/place.cpp",
+    "src/frontends/common/src/plugin_loader.cpp",
+    "src/frontends/common/src/decoder.cpp",
+    "src/frontends/common/src/exception.cpp",
   ]
 
   defines = [
@@ -243,9 +661,21 @@ shared_library("openvino") {
     "IMPLEMENT_OPENVINO_API",
     "IN_OV_CORE_LIBRARY",
     "IN_OV_COMPONENT",
+    "FRONTEND_LIB_PREFIX=\"openvino_\"",
   ]
 
+  if (is_debug) {
+    defines += [ "FRONTEND_LIB_SUFFIX=\"_frontendd.dll\"" ]
+  } else {
+    defines += [ "FRONTEND_LIB_SUFFIX=\"_frontend.dll\"" ]
+  }
+
   deps = [
+    ":openvino_descriptor",
+    ":openvino_pass",
+    ":openvino_reference",
+    ":openvino_reference_utils",
+
     # TBB, nlohmann_json, pugixml, etc.
     "//third_party/pugixml",
     "//third_party/oneTBB:tbb",
