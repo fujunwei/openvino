@@ -9,8 +9,6 @@
 #include "openvino/pass/matcher_pass.hpp"
 #include "transformations_visibility.hpp"
 
-using namespace std;
-
 namespace ov {
 namespace pass {
 
