@@ -13,6 +13,9 @@ config("warnings_config") {
 
     # TODO(crbug.com/1147556): Try to clean/remove no-sign-compare if possible.
     "-Wno-sign-compare",
+
+    # TODO
+    "-Wno-unused-private-field",
   ]
   visibility = [ ":*" ]
 }
@@ -39,6 +42,7 @@ config("openvino_config") {
     "//third_party/xbyak",
     "thirdparty/ittapi/include",
     "//third_party/oneTBB/include",
+
     # Additional include dirs for source compilation
     "src/inference/src",
     "src/core/reference/include",
@@ -55,6 +59,19 @@ config("openvino_config") {
 
   if (is_win) {
     defines += [ "_CRT_SECURE_NO_WARNINGS" ]
+    if (is_debug) {
+      defines += [ "OV_BUILD_POSTFIX=\"d\"" ]
+    } else {
+      defines += [ "OV_BUILD_POSTFIX=\"\"" ]
+    }
+  } else if (is_apple) {
+    if (is_debug) {
+      defines += [ "OV_BUILD_POSTFIX=\"d\"" ]
+    } else {
+      defines += [ "OV_BUILD_POSTFIX=\"\"" ]
+    }
+  } else {
+    defines += [ "OV_BUILD_POSTFIX=\"\"" ]
   }
 }
 
@@ -144,8 +161,8 @@ source_set("openvino_reference") {
   ]
 
   defines = [
-    "IMPLEMENT_OPENVINO_API",
     "IN_OV_CORE_LIBRARY",
+    "IMPLEMENT_OPENVINO_API",
   ]
 }
 
@@ -181,6 +198,52 @@ source_set("openvino_reference_utils") {
     "IMPLEMENT_OPENVINO_API",
     "IN_OV_CORE_LIBRARY",
   ]
+}
+
+# OpenVINO Frontend Common
+source_set("openvino_frontend_common") {
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+
+  sources = [
+    "src/frontends/common/src/manager.cpp",
+    "src/frontends/common/src/decoder.cpp",
+    "src/frontends/common/src/exception.cpp",
+    "src/frontends/common/src/frontend.cpp",
+    "src/frontends/common/src/input_model.cpp",
+    "src/frontends/common/src/place.cpp",
+    "src/frontends/common/src/plugin_loader.cpp",
+  ]
+
+  defines = [
+    "IMPLEMENT_OPENVINO_API",
+    "FRONTEND_LIB_PREFIX=\"openvino_\"",
+  ]
+
+  if (is_win) {
+    if (is_debug) {
+      defines += [ "FRONTEND_LIB_SUFFIX=\"_frontendd.dll\"" ]
+    } else {
+      defines += [ "FRONTEND_LIB_SUFFIX=\"_frontend.dll\"" ]
+    }
+  } else if (is_apple) {
+    defines += [ "FRONTEND_LIB_SUFFIX=\".dylib\"" ]
+  } else {
+    defines += [ "FRONTEND_LIB_SUFFIX=\".so\"" ]
+  }
 }
 
 # OpenVINO Pass
@@ -313,7 +376,6 @@ source_set("openvino_transformations") {
     ":warnings_config",
   ]
 
-
   sources = [
     "src/common/transformations/src/ov_ops/augru_cell.cpp",
     "src/common/transformations/src/ov_ops/augru_sequence.cpp",
@@ -349,13 +411,13 @@ source_set("openvino_transformations") {
     "src/common/transformations/src/transformations/common_optimizations/concat_reduce_fusion.cpp",
     "src/common/transformations/src/transformations/common_optimizations/concat_to_broadcast.cpp",
     "src/common/transformations/src/transformations/common_optimizations/constants_reduce.cpp",
+    "src/common/transformations/src/transformations/common_optimizations/conv_mul_fusion.cpp",
+    "src/common/transformations/src/transformations/common_optimizations/conv_to_binary_conv.cpp",
     "src/common/transformations/src/transformations/common_optimizations/convert_nms_gather_path_to_unsigned.cpp",
     "src/common/transformations/src/transformations/common_optimizations/convert_pagedattn_inputs.cpp",
     "src/common/transformations/src/transformations/common_optimizations/convert_quantize_dequantize.cpp",
     "src/common/transformations/src/transformations/common_optimizations/convert_u4_weights_zero_point_to_scalar.cpp",
     "src/common/transformations/src/transformations/common_optimizations/convolution_to_group_convolution.cpp",
-    "src/common/transformations/src/transformations/common_optimizations/conv_mul_fusion.cpp",
-    "src/common/transformations/src/transformations/common_optimizations/conv_to_binary_conv.cpp",
     "src/common/transformations/src/transformations/common_optimizations/depth_to_space_fusion.cpp",
     "src/common/transformations/src/transformations/common_optimizations/dilated_convolution_converter.cpp",
     "src/common/transformations/src/transformations/common_optimizations/dimension_tracking.cpp",
@@ -370,9 +432,9 @@ source_set("openvino_transformations") {
     "src/common/transformations/src/transformations/common_optimizations/fold_subgraph_empty_inputs.cpp",
     "src/common/transformations/src/transformations/common_optimizations/fq_mul_fusion.cpp",
     "src/common/transformations/src/transformations/common_optimizations/fq_reshape_fusion.cpp",
-    "src/common/transformations/src/transformations/common_optimizations/fused_names_cleanup.cpp",
     "src/common/transformations/src/transformations/common_optimizations/fuse_moe_experts.cpp",
     "src/common/transformations/src/transformations/common_optimizations/fuse_rotary_positional_embeddings.cpp",
+    "src/common/transformations/src/transformations/common_optimizations/fused_names_cleanup.cpp",
     "src/common/transformations/src/transformations/common_optimizations/gelu_fusion.cpp",
     "src/common/transformations/src/transformations/common_optimizations/glu_fusion.cpp",
     "src/common/transformations/src/transformations/common_optimizations/group_normalization_fusion.cpp",
@@ -598,13 +660,9 @@ source_set("openvino_transformations") {
     "src/common/transformations/src/transformations/utils/utils.cpp",
   ]
 
-  include_dirs = [
-    "src/common/transformations/src",
-  ]
+  include_dirs = [ "src/common/transformations/src" ]
 
-  defines = [
-    "IMPLEMENT_OPENVINO_API",
-  ]
+  defines = [ "IMPLEMENT_OPENVINO_API" ]
 }
 
 # OpenVINO Symbolic Transformations
@@ -638,6 +696,113 @@ source_set("openvino_symbolic_transformations") {
   defines = [ "IMPLEMENT_OPENVINO_API" ]
 }
 
+# OpenVINO Low Precision Transformations
+source_set("openvino_lp_transformations") {
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+
+  include_dirs = [ "src/common/low_precision_transformations/include" ]
+
+  sources = [
+    "src/common/low_precision_transformations/src/add.cpp",
+    "src/common/low_precision_transformations/src/align_quantization_intervals.cpp",
+    "src/common/low_precision_transformations/src/align_quantization_parameters.cpp",
+    "src/common/low_precision_transformations/src/assign_and_read_value.cpp",
+    "src/common/low_precision_transformations/src/avg_pool.cpp",
+    "src/common/low_precision_transformations/src/base_matcher_pass.cpp",
+    "src/common/low_precision_transformations/src/batch_to_space.cpp",
+    "src/common/low_precision_transformations/src/broadcast.cpp",
+    "src/common/low_precision_transformations/src/clamp.cpp",
+    "src/common/low_precision_transformations/src/cleanup_transformation.cpp",
+    "src/common/low_precision_transformations/src/concat.cpp",
+    "src/common/low_precision_transformations/src/convert_subtract_constant.cpp",
+    "src/common/low_precision_transformations/src/convolution.cpp",
+    "src/common/low_precision_transformations/src/convolution_backprop_data.cpp",
+    "src/common/low_precision_transformations/src/depth_to_space.cpp",
+    "src/common/low_precision_transformations/src/eliminate_fake_quantize.cpp",
+    "src/common/low_precision_transformations/src/eltwise_base_transformation.cpp",
+    "src/common/low_precision_transformations/src/fake_quantize.cpp",
+    "src/common/low_precision_transformations/src/fake_quantize_decomposition.cpp",
+    "src/common/low_precision_transformations/src/fake_quantize_dequantization.cpp",
+    "src/common/low_precision_transformations/src/fold_convert.cpp",
+    "src/common/low_precision_transformations/src/fold_fake_quantize.cpp",
+    "src/common/low_precision_transformations/src/fuse_convert.cpp",
+    "src/common/low_precision_transformations/src/fuse_elementwise_to_fake_quantize.cpp",
+    "src/common/low_precision_transformations/src/fuse_multiply_to_fake_quantize.cpp",
+    "src/common/low_precision_transformations/src/fuse_subtract_to_fake_quantize.cpp",
+    "src/common/low_precision_transformations/src/gather.cpp",
+    "src/common/low_precision_transformations/src/group_convolution.cpp",
+    "src/common/low_precision_transformations/src/interpolate.cpp",
+    "src/common/low_precision_transformations/src/kv_cache_concat.cpp",
+    "src/common/low_precision_transformations/src/layer_transformation.cpp",
+    "src/common/low_precision_transformations/src/low_precision.cpp",
+    "src/common/low_precision_transformations/src/markup_avg_pool_precision_preserved.cpp",
+    "src/common/low_precision_transformations/src/markup_bias.cpp",
+    "src/common/low_precision_transformations/src/markup_can_be_quantized.cpp",
+    "src/common/low_precision_transformations/src/markup_precisions.cpp",
+    "src/common/low_precision_transformations/src/markup_quantization_granularity.cpp",
+    "src/common/low_precision_transformations/src/mat_mul.cpp",
+    "src/common/low_precision_transformations/src/max_pool.cpp",
+    "src/common/low_precision_transformations/src/move_fake_convert_up_through_kv_cache_concat.cpp",
+    "src/common/low_precision_transformations/src/move_fake_quantize.cpp",
+    "src/common/low_precision_transformations/src/multiply.cpp",
+    "src/common/low_precision_transformations/src/multiply_partial.cpp",
+    "src/common/low_precision_transformations/src/multiply_to_group_convolution.cpp",
+    "src/common/low_precision_transformations/src/mvn.cpp",
+    "src/common/low_precision_transformations/src/network_helper.cpp",
+    "src/common/low_precision_transformations/src/normalize_l2.cpp",
+    "src/common/low_precision_transformations/src/pad.cpp",
+    "src/common/low_precision_transformations/src/prelu.cpp",
+    "src/common/low_precision_transformations/src/propagate_precisions.cpp",
+    "src/common/low_precision_transformations/src/pull_reshape_through_dequantization.cpp",
+    "src/common/low_precision_transformations/src/pull_transpose_through_dequantization.cpp",
+    "src/common/low_precision_transformations/src/qdq_stripping.cpp",
+    "src/common/low_precision_transformations/src/quantization_details.cpp",
+    "src/common/low_precision_transformations/src/recurrent_cell.cpp",
+    "src/common/low_precision_transformations/src/reduce_base_transformation.cpp",
+    "src/common/low_precision_transformations/src/reduce_max.cpp",
+    "src/common/low_precision_transformations/src/reduce_mean.cpp",
+    "src/common/low_precision_transformations/src/reduce_min.cpp",
+    "src/common/low_precision_transformations/src/reduce_sum.cpp",
+    "src/common/low_precision_transformations/src/relu.cpp",
+    "src/common/low_precision_transformations/src/reshape.cpp",
+    "src/common/low_precision_transformations/src/rt_info/avg_pool_precision_preserved_attribute.cpp",
+    "src/common/low_precision_transformations/src/rt_info/bias_attribute.cpp",
+    "src/common/low_precision_transformations/src/rt_info/intervals_alignment_attribute.cpp",
+    "src/common/low_precision_transformations/src/rt_info/precision_preserved_attribute.cpp",
+    "src/common/low_precision_transformations/src/rt_info/precisions_attribute.cpp",
+    "src/common/low_precision_transformations/src/rt_info/quantization_alignment_attribute.cpp",
+    "src/common/low_precision_transformations/src/rt_info/quantization_granularity_attribute.cpp",
+    "src/common/low_precision_transformations/src/rt_info/quantization_mode_attribute.cpp",
+    "src/common/low_precision_transformations/src/shuffle_channels.cpp",
+    "src/common/low_precision_transformations/src/slice.cpp",
+    "src/common/low_precision_transformations/src/space_to_batch.cpp",
+    "src/common/low_precision_transformations/src/split.cpp",
+    "src/common/low_precision_transformations/src/squeeze.cpp",
+    "src/common/low_precision_transformations/src/strided_slice.cpp",
+    "src/common/low_precision_transformations/src/transparent_base_transformation.cpp",
+    "src/common/low_precision_transformations/src/transpose.cpp",
+    "src/common/low_precision_transformations/src/unsqueeze.cpp",
+    "src/common/low_precision_transformations/src/variadic_split.cpp",
+    "src/common/low_precision_transformations/src/weightable_layer_transformation.cpp",
+  ]
+
+  defines = [ "IMPLEMENT_OPENVINO_API" ]
+}
+
 # OpenVINO Descriptor
 source_set("openvino_descriptor") {
   configs += [
@@ -655,7 +820,6 @@ source_set("openvino_descriptor") {
     "//build/config/compiler:no_chromium_code",
     ":warnings_config",
   ]
-
 
   sources = [
     "src/core/src/descriptor/input.cpp",
@@ -759,6 +923,37 @@ source_set("openvino_util") {
     "IMPLEMENT_OPENVINO_API",
     "OpenVINO_VERSION=\"2026.1.0\"",
     "OV_NATIVE_PARENT_PROJECT_ROOT_DIR=\"openvino\"",
+  ]
+}
+
+# OpenVINO ITT
+source_set("openvino_itt") {
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+
+  sources = [
+    "src/common/itt/src/itt.cpp",
+  ]
+
+  deps = [
+    ":openvino_util",
+  ]
+
+  defines = [
+    "IMPLEMENT_OPENVINO_API",
   ]
 }
 
@@ -1083,8 +1278,8 @@ source_set("openvino_core_sources") {
     "src/core/src/op/util/logical_reduction_keep_dims.cpp",
     "src/core/src/op/util/max_pool_base.cpp",
     "src/core/src/op/util/model_util.cpp",
-    "src/core/src/op/util/multiclass_nms_base.cpp",
     "src/core/src/op/util/multi_subgraph_base.cpp",
+    "src/core/src/op/util/multiclass_nms_base.cpp",
     "src/core/src/op/util/node_util.cpp",
     "src/core/src/op/util/one_hot_base.cpp",
     "src/core/src/op/util/op_types.cpp",
@@ -1153,6 +1348,33 @@ source_set("openvino_core_sources") {
   ]
 }
 
+# OpenVINO Shutdown
+source_set("openvino_shutdown") {
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+
+  sources = [
+    "src/common/shutdown/shutdown.cpp",
+  ]
+
+  defines = [
+    "IMPLEMENT_OPENVINO_API",
+  ]
+}
+
 # OpenVINO Runtime Core + Inference
 shared_library("openvino") {
   output_name = "openvino"
@@ -1174,35 +1396,16 @@ shared_library("openvino") {
 
   sources = [
     # Core sources are provided by openvino_core_sources
-
-    # ITT
-    "src/common/itt/src/itt.cpp",
-
-    # Shutdown
-    "src/common/shutdown/shutdown.cpp",
-
-    # Frontend common
-    "src/frontends/common/src/manager.cpp",
-    "src/frontends/common/src/frontend.cpp",
-    "src/frontends/common/src/input_model.cpp",
-    "src/frontends/common/src/place.cpp",
-    "src/frontends/common/src/plugin_loader.cpp",
-    "src/frontends/common/src/decoder.cpp",
-    "src/frontends/common/src/exception.cpp",
   ]
 
   defines = [
     "IMPLEMENT_OPENVINO_API",
-    "FRONTEND_LIB_PREFIX=\"openvino_\"",
   ]
 
-  if (is_debug) {
-    defines += [ "FRONTEND_LIB_SUFFIX=\"_frontendd.dll\"" ]
-  } else {
-    defines += [ "FRONTEND_LIB_SUFFIX=\"_frontend.dll\"" ]
-  }
-
   deps = [
+    ":openvino_shutdown",
+    ":openvino_itt",
+    ":openvino_frontend_common",
     ":openvino_core_sources",
     ":openvino_descriptor",
     ":openvino_ops",
@@ -1216,68 +1419,413 @@ shared_library("openvino") {
     ":openvino_util",
 
     # TBB, nlohmann_json, pugixml, etc.
-    "//third_party/pugixml",
     "//third_party/oneTBB:tbb",
+    "//third_party/pugixml",
     "//third_party/xbyak",
   ]
 }
 
+# OpenVINO NPU Plugin Config
+config("openvino_intel_npu_config") {
+  include_dirs = [
+    "src/plugins/intel_npu/src/al/include",
+    "src/plugins/intel_npu/src/common/include",
+    "src/plugins/intel_npu/src/utils/include",
+    "src/plugins/intel_npu/src/backend/include",
+    "src/plugins/intel_npu/src/compiler_adapter/include",
+    "src/plugins/intel_npu/src/ops/include",
+    "src/plugins/intel_npu/src/plugin/include",
+    "src/plugins/intel_npu/src/plugin/src",
+    "src/plugins/intel_npu/src/plugin",
+    "//third_party/level-zero/include",
+    "//third_party/level-zero-npu-extensions",
+  ]
+  defines = [
+    "IMPLEMENTING_VPU_PLUGIN",
+    "VPU_PLUGIN_VERSION=\"2026.1.0\"",
+  ]
+}
 
-# OpenVINO CPU Plugin
-shared_library("openvino_intel_cpu_plugin") {
-  output_name = "openvino_intel_cpu_plugin"
+# NPU Utils: Logger
+source_set("openvino_npu_logger_utils") {
   configs += [
     ":openvino_config",
     ":openvino_internal_config",
+    ":openvino_intel_npu_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
   ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+  sources = [ "src/plugins/intel_npu/src/utils/src/logger/logger.cpp" ]
+  defines = [
+    "IMPLEMENT_OPENVINO_API",
+  ]
+}
 
-  include_dirs = [
-    "src/plugins/intel_cpu/src",
-    "src/plugins/intel_cpu/include",
-    "thirdparty/onednn/include",
-    "thirdparty/onednn/src",
+# NPU Utils: Zero
+source_set("openvino_npu_zero_utils") {
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    ":openvino_intel_npu_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
   ]
 
   sources = [
-    "src/plugins/intel_cpu/src/plugin.cpp",
-    "src/plugins/intel_cpu/src/compiled_model.cpp",
-    "src/plugins/intel_cpu/src/infer_request.cpp",
-    "src/plugins/intel_cpu/src/async_infer_request.cpp",
-    "src/plugins/intel_cpu/src/config.cpp",
-    "src/plugins/intel_cpu/src/graph.cpp",
-    "src/plugins/intel_cpu/src/graph_context.cpp",
-    "src/plugins/intel_cpu/src/graph_optimizer.cpp",
-    "src/plugins/intel_cpu/src/graph_dumper.cpp",
-    "src/plugins/intel_cpu/src/cpu_memory.cpp",
-    "src/plugins/intel_cpu/src/cpu_shape.cpp",
-    "src/plugins/intel_cpu/src/cpu_tensor.cpp",
-    "src/plugins/intel_cpu/src/cpu_types.cpp",
-    "src/plugins/intel_cpu/src/edge.cpp",
-    "src/plugins/intel_cpu/src/node.cpp",
-    "src/plugins/intel_cpu/src/nodes/convolution.cpp",
-    "src/plugins/intel_cpu/src/nodes/eltwise.cpp",
-    "src/plugins/intel_cpu/src/nodes/fullyconnected.cpp",
-    "src/plugins/intel_cpu/src/nodes/input.cpp",
-    "src/plugins/intel_cpu/src/nodes/matmul.cpp",
-    "src/plugins/intel_cpu/src/nodes/pooling.cpp",
-    "src/plugins/intel_cpu/src/nodes/reorder.cpp",
-    "src/plugins/intel_cpu/src/nodes/reshape.cpp",
-    "src/plugins/intel_cpu/src/nodes/softmax.cpp",
-    # many more CPU plugin nodes, emitters, and executors...
+    "src/plugins/intel_npu/src/utils/src/zero/zero_api.cpp",
+    "src/plugins/intel_npu/src/utils/src/zero/zero_host_tensor.cpp",
+    "src/plugins/intel_npu/src/utils/src/zero/zero_init.cpp",
+    "src/plugins/intel_npu/src/utils/src/zero/zero_mem.cpp",
+    "src/plugins/intel_npu/src/utils/src/zero/zero_mem_pool.cpp",
+    "src/plugins/intel_npu/src/utils/src/zero/zero_remote_tensor.cpp",
+    "src/plugins/intel_npu/src/utils/src/zero/zero_result.cpp",
+    "src/plugins/intel_npu/src/utils/src/zero/zero_wrappers.cpp",
+  ]
+  defines = [
+    "IMPLEMENT_OPENVINO_API",
+  ]
+  deps = [ ":openvino_npu_logger_utils" ]
+}
 
-    "src/plugins/intel_cpu/src/onednn/dnnl.cpp",
-    "src/plugins/intel_cpu/src/onednn/iml_type_mapper.cpp",
-    "src/plugins/intel_cpu/src/mlas/sgemm.cpp",
-    "src/plugins/intel_cpu/src/mlas/thread_pool.cpp",
+# NPU Abstraction Layer
+source_set("openvino_npu_al") {
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    ":openvino_intel_npu_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+  sources = [
+    "src/plugins/intel_npu/src/al/src/config/config.cpp",
+    "src/plugins/intel_npu/src/al/src/config/npuw.cpp",
+    "src/plugins/intel_npu/src/al/src/network_metadata.cpp",
+  ]
+  defines = [
+    "IMPLEMENT_OPENVINO_API",
+  ]
+}
+
+# NPU Common
+source_set("openvino_npu_common") {
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    ":openvino_intel_npu_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+  sources = [
+    "src/plugins/intel_npu/src/common/src/device_helpers.cpp",
+    "src/plugins/intel_npu/src/common/src/filtered_config.cpp",
+    "src/plugins/intel_npu/src/common/src/idynamic_graph.cpp",
+    "src/plugins/intel_npu/src/common/src/igraph.cpp",
+    "src/plugins/intel_npu/src/common/src/npu.cpp",
+    "src/plugins/intel_npu/src/common/src/sync_infer_request.cpp",
+  ]
+  defines = [
+    "IMPLEMENT_OPENVINO_API",
+  ]
+  deps = [ ":openvino_npu_al" ]
+}
+
+# NPU Ops
+source_set("openvino_npu_ops") {
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    ":openvino_intel_npu_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+  sources = [
+    "src/plugins/intel_npu/src/ops/src/intel_npu/ops/flash_attention_tile.cpp",
+  ]
+  defines = [
+    "IMPLEMENT_OPENVINO_API",
+  ]
+}
+
+# NPU Level Zero Backend
+source_set("openvino_npu_level_zero_backend") {
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    ":openvino_intel_npu_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+  sources = [
+    "src/plugins/intel_npu/src/backend/src/zero_backend.cpp",
+    "src/plugins/intel_npu/src/backend/src/zero_device.cpp",
+    "src/plugins/intel_npu/src/backend/src/zero_dynamic_infer_request.cpp",
+    "src/plugins/intel_npu/src/backend/src/zero_dynamic_pipeline.cpp",
+    "src/plugins/intel_npu/src/backend/src/zero_infer_request.cpp",
+    "src/plugins/intel_npu/src/backend/src/zero_pipeline.cpp",
+    "src/plugins/intel_npu/src/backend/src/zero_profiling.cpp",
+    "src/plugins/intel_npu/src/backend/src/zero_tensor.cpp",
+    "src/plugins/intel_npu/src/backend/src/zero_variable_state.cpp",
+  ]
+  defines = [
+    "IMPLEMENT_OPENVINO_API",
+  ]
+  deps = [
+    ":openvino_npu_common",
+    ":openvino_npu_zero_utils",
+  ]
+}
+
+# NPU Driver Compiler Adapter
+source_set("openvino_npu_driver_compiler_adapter") {
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    ":openvino_intel_npu_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+  sources = [
+    "src/plugins/intel_npu/src/compiler_adapter/src/compiler_adapter_factory.cpp",
+    "src/plugins/intel_npu/src/compiler_adapter/src/compiler_impl.cpp",
+    "src/plugins/intel_npu/src/compiler_adapter/src/driver_compiler_adapter.cpp",
+    "src/plugins/intel_npu/src/compiler_adapter/src/dynamic_graph.cpp",
+    "src/plugins/intel_npu/src/compiler_adapter/src/graph.cpp",
+    "src/plugins/intel_npu/src/compiler_adapter/src/mem_usage.cpp",
+    "src/plugins/intel_npu/src/compiler_adapter/src/model_serializer.cpp",
+    "src/plugins/intel_npu/src/compiler_adapter/src/npu_mlir_runtime_api.cpp",
+    "src/plugins/intel_npu/src/compiler_adapter/src/parser.cpp",
+    "src/plugins/intel_npu/src/compiler_adapter/src/parser_factory.cpp",
+    "src/plugins/intel_npu/src/compiler_adapter/src/plugin_compiler_adapter.cpp",
+    "src/plugins/intel_npu/src/compiler_adapter/src/weightless_graph.cpp",
+    "src/plugins/intel_npu/src/compiler_adapter/src/weightless_utils.cpp",
+    "src/plugins/intel_npu/src/compiler_adapter/src/xml_serializer.cpp",
+    "src/plugins/intel_npu/src/compiler_adapter/src/ze_graph_ext_wrappers.cpp",
+  ]
+  defines = [
+    "IMPLEMENT_OPENVINO_API",
+  ]
+  deps = [ ":openvino_npu_common" ]
+}
+
+# NPUW (NPU Walkthrough)
+source_set("openvino_npu_npuw") {
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    ":openvino_intel_npu_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+
+  sources = [
+    "src/plugins/intel_npu/src/plugin/npuw/accuracy/comparator.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/attention.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/base_sync_infer_request.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/compiled_model.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/embedding_infer_request.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/embedding_model_utils.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/host_flash_attention.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/infer_request_utils.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/just_sync_infer_request.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/lazy_tensor.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/llm_compiled_model.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/llm_compiled_model_utils.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/llm_eagle3_extension.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/llm_infer_base_request.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/llm_infer_request.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/llm_prefix_caching.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/logging.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/moe/moe_executor.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/moe/moe_infer_utils.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/moe/moe_resources.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/moe_transformations/device_routed_moe_transform.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/moe_transformations/gather_to_2d_gather.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/moe_transformations/moe_transformation.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/moe_transformations/moe_unroll_patterns.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/partitioning/online/compiler.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/partitioning/online/graph.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/partitioning/online/group.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/partitioning/online/repeated.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/partitioning/online/snapshot.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/partitioning/online/utils/utils.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/partitioning/partitioning.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/partitioning/patterns/avoid.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/partitioning/patterns/compute.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/partitioning/patterns/dcoff.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/partitioning/patterns/moe.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/partitioning/patterns/opt.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/partitioning/patterns/pre_compute.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/partitioning/patterns/sdpa.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/partitioning/traits.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/perf.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/pipelines/kokoro/kokoro_compiled_model.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/pipelines/kokoro/kokoro_infer_request.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/pipelines/kokoro/kokoro_split.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/pyramid_attention.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/serialization.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/spatial.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/unfold_sync_infer_request.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/util.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/util_xarch.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/weights_bank.cpp",
+    "src/plugins/intel_npu/src/plugin/npuw/whisper_infer_request.cpp",
   ]
 
   defines = [
     "IMPLEMENT_OPENVINO_API",
-    "OV_PLUGIN",
+  ]
+}
+
+# NPU Plugin main sources
+source_set("openvino_intel_npu_plugin_sources") {
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    ":openvino_intel_npu_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+
+  sources = [
+    "src/plugins/intel_npu/src/plugin/src/async_infer_request.cpp",
+    "src/plugins/intel_npu/src/plugin/src/backends_registry.cpp",
+    "src/plugins/intel_npu/src/plugin/src/compiled_model.cpp",
+    "src/plugins/intel_npu/src/plugin/src/extension.cpp",
+    "src/plugins/intel_npu/src/plugin/src/metadata.cpp",
+    "src/plugins/intel_npu/src/plugin/src/metrics.cpp",
+    "src/plugins/intel_npu/src/plugin/src/plugin.cpp",
+    "src/plugins/intel_npu/src/plugin/src/properties.cpp",
+    "src/plugins/intel_npu/src/plugin/src/remote_context.cpp",
+    "src/plugins/intel_npu/src/plugin/src/transformations.cpp",
+  ]
+
+  defines = [
+    "CI_BUILD_NUMBER=\"2026.1.0-chromium\"",
+    "IMPLEMENT_OPENVINO_API",
   ]
 
   deps = [
-    ":openvino",
-    # oneDNN, mlas, etc.
+    ":openvino_npu_al",
+    ":openvino_npu_common",
+    ":openvino_npu_driver_compiler_adapter",
+    ":openvino_npu_level_zero_backend",
+    ":openvino_npu_npuw",
+    ":openvino_npu_ops",
+    #"//third_party/level_zero",
+  ]
+}
+
+# OpenVINO NPU Plugin Shared Library
+shared_library("openvino_intel_npu_plugin") {
+  output_name = "openvino_intel_npu_plugin"
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    ":openvino_intel_npu_config",
+  ]
+
+  deps = [
+    ":openvino_core_sources",
+    ":openvino_descriptor",
+    ":openvino_ops",
+    ":openvino_pass",
+    ":openvino_pattern",
+    ":openvino_reference",
+    ":openvino_reference_utils",
+    ":openvino_runtime",
+    ":openvino_symbolic_transformations",
+    ":openvino_transformations",
+    ":openvino_util",
+    ":openvino_shutdown",
+    ":openvino_lp_transformations",
+    ":openvino_intel_npu_plugin_sources",
+    ":openvino_frontend_common",
+    ":openvino_itt",
+
+    # TBB, nlohmann_json, pugixml, etc.
+    "//third_party/oneTBB:tbb",
+    "//third_party/pugixml",
+    "//third_party/xbyak",
   ]
 }

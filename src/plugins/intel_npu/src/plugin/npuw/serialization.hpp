@@ -323,9 +323,7 @@ void read(std::istream& stream, std::vector<T>& var) {
 template <typename T, std::size_t N>
 void read(std::istream& stream, std::array<T, N>& var) {
     for (std::size_t i = 0; i < N; ++i) {
-        T elem;
-        read(stream, elem);
-        var[i] = elem;
+        read(stream, var[i]);
     }
 }
 
