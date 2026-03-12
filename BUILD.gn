@@ -289,6 +289,55 @@ source_set("openvino_pass") {
   ]
 }
 
+# OpenVINO C API
+source_set("openvino_c") {
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+
+  include_dirs = [
+    "src/bindings/c/include",
+    "src/bindings/c/include/auto",
+  ]
+
+  sources = [
+    "src/bindings/c/src/ov_auto_property.cpp",
+    "src/bindings/c/src/ov_common.cpp",
+    "src/bindings/c/src/ov_compiled_model.cpp",
+    "src/bindings/c/src/ov_core.cpp",
+    "src/bindings/c/src/ov_dimension.cpp",
+    "src/bindings/c/src/ov_infer_request.cpp",
+    "src/bindings/c/src/ov_layout.cpp",
+    "src/bindings/c/src/ov_model.cpp",
+    "src/bindings/c/src/ov_node.cpp",
+    "src/bindings/c/src/ov_partial_shape.cpp",
+    "src/bindings/c/src/ov_prepostprocess.cpp",
+    "src/bindings/c/src/ov_property.cpp",
+    "src/bindings/c/src/ov_rank.cpp",
+    "src/bindings/c/src/ov_remote_context.cpp",
+    "src/bindings/c/src/ov_shape.cpp",
+    "src/bindings/c/src/ov_tensor.cpp",
+    "src/bindings/c/src/ov_util.cpp",
+  ]
+
+  defines = [
+    "IMPLEMENT_OPENVINO_API",
+    "openvino_c_EXPORTS",
+  ]
+}
+
 # OpenVINO Runtime (Inference Engine)
 source_set("openvino_runtime") {
   configs += [
@@ -1406,6 +1455,7 @@ shared_library("openvino") {
     ":openvino_shutdown",
     ":openvino_itt",
     ":openvino_frontend_common",
+    ":openvino_c",
     ":openvino_core_sources",
     ":openvino_descriptor",
     ":openvino_ops",
@@ -1417,6 +1467,7 @@ shared_library("openvino") {
     ":openvino_symbolic_transformations",
     ":openvino_transformations",
     ":openvino_util",
+    ":openvino_intel_npu_plugin",
 
     # TBB, nlohmann_json, pugixml, etc.
     "//third_party/oneTBB:tbb",
@@ -1783,6 +1834,7 @@ source_set("openvino_intel_npu_plugin_sources") {
   defines = [
     "CI_BUILD_NUMBER=\"2026.1.0-chromium\"",
     "IMPLEMENT_OPENVINO_API",
+    "IMPLEMENT_OPENVINO_RUNTIME_PLUGIN",
   ]
 
   deps = [
@@ -1827,5 +1879,23 @@ shared_library("openvino_intel_npu_plugin") {
     "//third_party/oneTBB:tbb",
     "//third_party/pugixml",
     "//third_party/xbyak",
+  ]
+}
+
+# Gemma Mul Sample
+executable("gemma_mul_sample") {
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+  ]
+  include_dirs = [
+    "src/bindings/c/include",
+    "src/bindings/c/include/auto",
+  ]
+  sources = [
+    "samples/c/gemma_mul/main.c",
+  ]
+  deps = [ 
+    ":openvino",
   ]
 }
