@@ -218,14 +218,31 @@ source_set("openvino_frontend_common") {
     ":warnings_config",
   ]
 
+  include_dirs = [
+    "src/frontends/common/dev_api"
+  ]
+
   sources = [
-    "src/frontends/common/src/manager.cpp",
+    "src/frontends/common/src/complex_type_mark.cpp",
+    "src/frontends/common/src/concat_from_sequence.cpp",
     "src/frontends/common/src/decoder.cpp",
     "src/frontends/common/src/exception.cpp",
+    "src/frontends/common/src/extension/conversion.cpp",
+    "src/frontends/common/src/extension/decoder_transformation.cpp",
+    "src/frontends/common/src/extension/progress_reporter.cpp",
+    "src/frontends/common/src/extension/telemetry.cpp",
     "src/frontends/common/src/frontend.cpp",
+    "src/frontends/common/src/graph_iterator.cpp",
+    "src/frontends/common/src/hash_table.cpp",
     "src/frontends/common/src/input_model.cpp",
+    "src/frontends/common/src/manager.cpp",
+    "src/frontends/common/src/node_context.cpp",
     "src/frontends/common/src/place.cpp",
     "src/frontends/common/src/plugin_loader.cpp",
+    "src/frontends/common/src/random_normal_helper.cpp",
+    "src/frontends/common/src/sequence_insert.cpp",
+    "src/frontends/common/src/sequence_mark.cpp",
+    "src/frontends/common/src/variable.cpp",
   ]
 
   defines = [
@@ -286,6 +303,301 @@ source_set("openvino_pass") {
   defines = [
     "IMPLEMENT_OPENVINO_API",
     "IN_OV_CORE_LIBRARY",
+  ]
+}
+
+# OpenVINO TensorFlow Common Frontend
+source_set("openvino_tensorflow_common") {
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+
+  sources = [
+    "src/frontends/tensorflow_common/src/place.cpp",
+    "src/frontends/tensorflow_common/src/utils.cpp",
+    "src/frontends/tensorflow_common/src/helper_transforms/const_to_result_remover.cpp",
+    "src/frontends/tensorflow_common/src/helper_transforms/embedding_segments_feature_fusing.cpp",
+    "src/frontends/tensorflow_common/src/helper_transforms/saved_model_unused_remover.cpp",
+    "src/frontends/tensorflow_common/src/helper_transforms/tensor_array_v3_replacer.cpp",
+    "src/frontends/tensorflow_common/src/helper_transforms/tensor_list_ops_resolver.cpp",
+    "src/frontends/tensorflow_common/src/op/addN.cpp",
+    "src/frontends/tensorflow_common/src/op/adjust_contrast.cpp",
+    "src/frontends/tensorflow_common/src/op/adjust_hue.cpp",
+    "src/frontends/tensorflow_common/src/op/adjust_saturation.cpp",
+    "src/frontends/tensorflow_common/src/op/angle.cpp",
+    "src/frontends/tensorflow_common/src/op/approximate_equal_op.cpp",
+    "src/frontends/tensorflow_common/src/op/argdef_ops.cpp",
+    "src/frontends/tensorflow_common/src/op/arg_min_max.cpp",
+    "src/frontends/tensorflow_common/src/op/atan2.cpp",
+    "src/frontends/tensorflow_common/src/op/avg_pool.cpp",
+    "src/frontends/tensorflow_common/src/op/bias_add.cpp",
+    "src/frontends/tensorflow_common/src/op/binary_op.cpp",
+    "src/frontends/tensorflow_common/src/op/bincount.cpp",
+    "src/frontends/tensorflow_common/src/op/broadcast_args.cpp",
+    "src/frontends/tensorflow_common/src/op/broadcast_to.cpp",
+    "src/frontends/tensorflow_common/src/op/bucketize.cpp",
+    "src/frontends/tensorflow_common/src/op/cast.cpp",
+    "src/frontends/tensorflow_common/src/op/clip_by_value.cpp",
+    "src/frontends/tensorflow_common/src/op/complex.cpp",
+    "src/frontends/tensorflow_common/src/op/complex_abs.cpp",
+    "src/frontends/tensorflow_common/src/op/concat.cpp",
+    "src/frontends/tensorflow_common/src/op/conj_transpose.cpp",
+    "src/frontends/tensorflow_common/src/op/const.cpp",
+    "src/frontends/tensorflow_common/src/op/conv_2d.cpp",
+    "src/frontends/tensorflow_common/src/op/conv_2d_backprop.cpp",
+    "src/frontends/tensorflow_common/src/op/conv_3d.cpp",
+    "src/frontends/tensorflow_common/src/op/conv_3d_backprop.cpp",
+    "src/frontends/tensorflow_common/src/op/crop_and_resize.cpp",
+    "src/frontends/tensorflow_common/src/op/ctc_greedy_decoder.cpp",
+    "src/frontends/tensorflow_common/src/op/ctc_loss.cpp",
+    "src/frontends/tensorflow_common/src/op/cumsum.cpp",
+    "src/frontends/tensorflow_common/src/op/depthwise_conv_2d.cpp",
+    "src/frontends/tensorflow_common/src/op/depth_to_space.cpp",
+    "src/frontends/tensorflow_common/src/op/div.cpp",
+    "src/frontends/tensorflow_common/src/op/div_no_nan.cpp",
+    "src/frontends/tensorflow_common/src/op/dynamic_partition.cpp",
+    "src/frontends/tensorflow_common/src/op/einsum.cpp",
+    "src/frontends/tensorflow_common/src/op/elu.cpp",
+    "src/frontends/tensorflow_common/src/op/erfc.cpp",
+    "src/frontends/tensorflow_common/src/op/expand_dims.cpp",
+    "src/frontends/tensorflow_common/src/op/expm1.cpp",
+    "src/frontends/tensorflow_common/src/op/extract_image_patches.cpp",
+    "src/frontends/tensorflow_common/src/op/fake_quant_min_max_vars.cpp",
+    "src/frontends/tensorflow_common/src/op/fft.cpp",
+    "src/frontends/tensorflow_common/src/op/fill.cpp",
+    "src/frontends/tensorflow_common/src/op/fused_batch_norm.cpp",
+    "src/frontends/tensorflow_common/src/op/gather.cpp",
+    "src/frontends/tensorflow_common/src/op/gather_tree.cpp",
+    "src/frontends/tensorflow_common/src/op/gelu.cpp",
+    "src/frontends/tensorflow_common/src/op/hsv_to_rgb.cpp",
+    "src/frontends/tensorflow_common/src/op/identity.cpp",
+    "src/frontends/tensorflow_common/src/op/ifft.cpp",
+    "src/frontends/tensorflow_common/src/op/interpolate.cpp",
+    "src/frontends/tensorflow_common/src/op/inv.cpp",
+    "src/frontends/tensorflow_common/src/op/invert_permutation.cpp",
+    "src/frontends/tensorflow_common/src/op/irfft.cpp",
+    "src/frontends/tensorflow_common/src/op/l2_loss.cpp",
+    "src/frontends/tensorflow_common/src/op/leaky_relu.cpp",
+    "src/frontends/tensorflow_common/src/op/linspace.cpp",
+    "src/frontends/tensorflow_common/src/op/list_diff.cpp",
+    "src/frontends/tensorflow_common/src/op/log1p.cpp",
+    "src/frontends/tensorflow_common/src/op/log_softmax.cpp",
+    "src/frontends/tensorflow_common/src/op/lrn.cpp",
+    "src/frontends/tensorflow_common/src/op/matmul.cpp",
+    "src/frontends/tensorflow_common/src/op/matrix_band_part.cpp",
+    "src/frontends/tensorflow_common/src/op/matrix_diag.cpp",
+    "src/frontends/tensorflow_common/src/op/matrix_inverse.cpp",
+    "src/frontends/tensorflow_common/src/op/max_pool.cpp",
+    "src/frontends/tensorflow_common/src/op/multinomial.cpp",
+    "src/frontends/tensorflow_common/src/op/mul_no_nan.cpp",
+    "src/frontends/tensorflow_common/src/op/non_max_suppression.cpp",
+    "src/frontends/tensorflow_common/src/op/no_op.cpp",
+    "src/frontends/tensorflow_common/src/op/ones_like.cpp",
+    "src/frontends/tensorflow_common/src/op/one_hot.cpp",
+    "src/frontends/tensorflow_common/src/op/pack.cpp",
+    "src/frontends/tensorflow_common/src/op/pad.cpp",
+    "src/frontends/tensorflow_common/src/op/parallel_dynamic_stitch.cpp",
+    "src/frontends/tensorflow_common/src/op/placeholder.cpp",
+    "src/frontends/tensorflow_common/src/op/random_uniform.cpp",
+    "src/frontends/tensorflow_common/src/op/range.cpp",
+    "src/frontends/tensorflow_common/src/op/rank.cpp",
+    "src/frontends/tensorflow_common/src/op/real_imag.cpp",
+    "src/frontends/tensorflow_common/src/op/reciprocal.cpp",
+    "src/frontends/tensorflow_common/src/op/reduce.cpp",
+    "src/frontends/tensorflow_common/src/op/relu_6.cpp",
+    "src/frontends/tensorflow_common/src/op/reshape.cpp",
+    "src/frontends/tensorflow_common/src/op/reverse.cpp",
+    "src/frontends/tensorflow_common/src/op/reverse_sequence.cpp",
+    "src/frontends/tensorflow_common/src/op/rfft.cpp",
+    "src/frontends/tensorflow_common/src/op/rgb_to_hsv.cpp",
+    "src/frontends/tensorflow_common/src/op/rint.cpp",
+    "src/frontends/tensorflow_common/src/op/roll.cpp",
+    "src/frontends/tensorflow_common/src/op/round.cpp",
+    "src/frontends/tensorflow_common/src/op/rsqrt.cpp",
+    "src/frontends/tensorflow_common/src/op/scatter_nd.cpp",
+    "src/frontends/tensorflow_common/src/op/segment_max.cpp",
+    "src/frontends/tensorflow_common/src/op/segment_sum.cpp",
+    "src/frontends/tensorflow_common/src/op/select.cpp",
+    "src/frontends/tensorflow_common/src/op/shape.cpp",
+    "src/frontends/tensorflow_common/src/op/size.cpp",
+    "src/frontends/tensorflow_common/src/op/slice.cpp",
+    "src/frontends/tensorflow_common/src/op/softmax.cpp",
+    "src/frontends/tensorflow_common/src/op/space_to_batch_nd.cpp",
+    "src/frontends/tensorflow_common/src/op/space_to_depth.cpp",
+    "src/frontends/tensorflow_common/src/op/sparse_fill_empty_rows.cpp",
+    "src/frontends/tensorflow_common/src/op/sparse_segment_op.cpp",
+    "src/frontends/tensorflow_common/src/op/sparse_tensor_dense_add.cpp",
+    "src/frontends/tensorflow_common/src/op/sparse_tensor_dense_mat_mul.cpp",
+    "src/frontends/tensorflow_common/src/op/sparse_to_dense.cpp",
+    "src/frontends/tensorflow_common/src/op/split.cpp",
+    "src/frontends/tensorflow_common/src/op/sqrt.cpp",
+    "src/frontends/tensorflow_common/src/op/square.cpp",
+    "src/frontends/tensorflow_common/src/op/squeeze.cpp",
+    "src/frontends/tensorflow_common/src/op/strided_slice.cpp",
+    "src/frontends/tensorflow_common/src/op/tensor_list_operations.cpp",
+    "src/frontends/tensorflow_common/src/op/tensor_scatter_add.cpp",
+    "src/frontends/tensorflow_common/src/op/tensor_scatter_update.cpp",
+    "src/frontends/tensorflow_common/src/op/tile.cpp",
+    "src/frontends/tensorflow_common/src/op/tobool.cpp",
+    "src/frontends/tensorflow_common/src/op/top_k.cpp",
+    "src/frontends/tensorflow_common/src/op/transpose.cpp",
+    "src/frontends/tensorflow_common/src/op/truncate_div.cpp",
+    "src/frontends/tensorflow_common/src/op/truncate_mod.cpp",
+    "src/frontends/tensorflow_common/src/op/unary_op.cpp",
+    "src/frontends/tensorflow_common/src/op/unique.cpp",
+    "src/frontends/tensorflow_common/src/op/unique_with_counts.cpp",
+    "src/frontends/tensorflow_common/src/op/unpack.cpp",
+    "src/frontends/tensorflow_common/src/op/unravel_index.cpp",
+    "src/frontends/tensorflow_common/src/op/unsorted_segment_sum.cpp",
+    "src/frontends/tensorflow_common/src/op/where.cpp",
+    "src/frontends/tensorflow_common/src/op/xdivy.cpp",
+    "src/frontends/tensorflow_common/src/op/xlog1py.cpp",
+    "src/frontends/tensorflow_common/src/op/xlogy.cpp",
+    "src/frontends/tensorflow_common/src/op/zeros_like.cpp",
+  ]
+
+  include_dirs = [
+    "src/frontends/tensorflow_common/include",
+    "src/frontends/tensorflow_common/src",
+    "src/frontends/common_translators/include",
+  ]
+
+  deps = [
+    ":openvino_common_translators",
+  ]
+}
+
+# OpenVINO Common Translators
+source_set("openvino_common_translators") {
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+
+  sources = [
+    "src/frontends/common_translators/src/op/angle.cpp",
+    "src/frontends/common_translators/src/op/atan2.cpp",
+    "src/frontends/common_translators/src/op/complex.cpp",
+    "src/frontends/common_translators/src/op/equal.cpp",
+    "src/frontends/common_translators/src/op/erfc.cpp",
+    "src/frontends/common_translators/src/op/unsqueeze.cpp",
+    "src/frontends/common_translators/src/sequence_concat_replacer.cpp",
+    "src/frontends/common_translators/src/unconverted_ops_report.cpp",
+    "src/frontends/common_translators/src/utils.cpp",
+  ]
+
+  include_dirs = [
+    "src/frontends/common_translators/include",
+    "src/frontends/common_translators/src",
+  ]
+}
+
+import("//third_party/flatbuffers/flatbuffer.gni")
+
+flatbuffer("openvino_tensorflow_lite_fbs") {
+  sources = [ "src/frontends/tensorflow_lite/src/schema/schema.fbs" ]
+}
+
+# OpenVINO TensorFlow Lite Frontend
+shared_library("openvino_tensorflow_lite_frontend") {
+  output_name = "openvino_tensorflow_lite_frontend"
+  configs += [
+    ":openvino_config",
+    ":openvino_internal_config",
+    "//build/config/compiler:exceptions",
+    "//build/config/compiler:rtti",
+  ]
+  configs -= [
+    "//build/config/compiler:no_exceptions",
+    "//build/config/compiler:no_rtti",
+  ]
+  configs -= [ "//build/config/compiler:chromium_code" ]
+  configs += [
+    "//build/config/compiler:no_chromium_code",
+    ":warnings_config",
+  ]
+
+  sources = [
+    "src/frontends/tensorflow_lite/src/decoder.cpp",
+    "src/frontends/tensorflow_lite/src/decoder_flatbuffer.cpp",
+    "src/frontends/tensorflow_lite/src/frontend.cpp",
+    "src/frontends/tensorflow_lite/src/graph_iterator.cpp",
+    "src/frontends/tensorflow_lite/src/graph_iterator_flatbuffer.cpp",
+    "src/frontends/tensorflow_lite/src/input_model.cpp",
+    "src/frontends/tensorflow_lite/src/op_table.cpp",
+    "src/frontends/tensorflow_lite/src/quantization_info.cpp",
+    "src/frontends/tensorflow_lite/src/sparsity_info.cpp",
+    "src/frontends/tensorflow_lite/src/tensorflow_lite.cpp",
+    "src/frontends/tensorflow_lite/src/tensor_lite_place.cpp",
+    "src/frontends/tensorflow_lite/src/utils.cpp",
+    "src/frontends/tensorflow_lite/src/op/complex_abs.cpp",
+    "src/frontends/tensorflow_lite/src/op/concatenation.cpp",
+    "src/frontends/tensorflow_lite/src/op/conv2d.cpp",
+    "src/frontends/tensorflow_lite/src/op/depthwise_conv2d.cpp",
+    "src/frontends/tensorflow_lite/src/op/embedding_lookup.cpp",
+    "src/frontends/tensorflow_lite/src/op/fully_connected.cpp",
+    "src/frontends/tensorflow_lite/src/op/gather.cpp",
+    "src/frontends/tensorflow_lite/src/op/l2_normalization.cpp",
+    "src/frontends/tensorflow_lite/src/op/op_translation_utils.cpp",
+    "src/frontends/tensorflow_lite/src/op/pool2d.cpp",
+    "src/frontends/tensorflow_lite/src/op/quantize.cpp",
+    "src/frontends/tensorflow_lite/src/op/reshape.cpp",
+    "src/frontends/tensorflow_lite/src/op/rfft2d.cpp",
+    "src/frontends/tensorflow_lite/src/op/softmax.cpp",
+    "src/frontends/tensorflow_lite/src/op/transpose_conv.cpp",
+    "src/frontends/tensorflow_lite/src/op/unique.cpp",
+    "src/frontends/tensorflow_lite/src/op/while.cpp",
+    "src/frontends/tensorflow_lite/src/tflite_transformations/rfft2d_complex_abs.cpp",
+    "src/frontends/tensorflow_lite/src/tflite_transformations/tflite_quantize_resolver.cpp",
+  ]
+
+  include_dirs = [
+    "src/frontends/tensorflow_lite/src",
+    "src/frontends/tensorflow_lite/src/op",
+    "src/frontends/tensorflow_lite/src/tflite_ops",
+    "src/frontends/tensorflow_lite/src/tflite_transformations",
+    "//third_party/flatbuffers/src/include",
+    "src/frontends/tensorflow_lite/include",
+    "//third_party/tflite/src",
+    "//third_party/tflite/src/tensorflow/lite/schema",
+    "src/frontends/tensorflow_common/include",
+  ]
+
+  deps = [
+    ":openvino",
+    ":openvino_util",
+    ":openvino_tensorflow_common",
+    ":openvino_tensorflow_lite_fbs",
+
+    "//third_party/pugixml",
+  ]
+
+  defines = [
+    "OPENVINO_FRONTEND_LIBRARY",
+    "openvino_tensorflow_lite_frontend_EXPORTS",
   ]
 }
 
@@ -1895,7 +2207,8 @@ executable("gemma_mul_sample") {
   sources = [
     "samples/c/gemma_mul/main.c",
   ]
-  deps = [ 
+  deps = [
     ":openvino",
+    ":openvino_tensorflow_lite_frontend",
   ]
 }

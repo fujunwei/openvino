@@ -75,6 +75,8 @@ public:
             }
 #if defined(__MINGW32__) || defined(__MINGW64__)
             std::ifstream tflite_stream(std::filesystem::path(path), std::ios::in | std::ifstream::binary);
+#elif defined(_WIN32)
+            std::ifstream tflite_stream(ov::util::make_path(path), std::ios::in | std::ifstream::binary);
 #else
             std::ifstream tflite_stream(path, std::ios::in | std::ifstream::binary);
 #endif
