@@ -44,23 +44,20 @@ int main(int argc, char** argv) {
 
     // -------- Step 2. Read a model --------
     printf("[INFO] Loading model file: %s\n", model_path);
-    // CHECK_STATUS(ov_core_read_model(core, model_path, NULL, &model));
-    CHECK_STATUS(ov_core_compile_model_from_file(core,
-      model_path,
-      device_name, 0, &compiled_model));
+    CHECK_STATUS(ov_core_read_model(core, model_path, NULL, &model));
 
     // -------- Step 3. Set up input shapes and tensors --------
     int64_t dims[] = {2, 2};
     CHECK_STATUS(ov_shape_create(2, dims, &input_shape));
 
     // Create first input tensor
-    CHECK_STATUS(ov_tensor_create_from_host_ptr(F32, input_shape, NULL, &input_tensor1));
+    CHECK_STATUS(ov_tensor_create(F32, input_shape, &input_tensor1));
     float* data1 = NULL;
     CHECK_STATUS(ov_tensor_data(input_tensor1, (void**)&data1));
-    data1[0] = 1.0f; data1[1] = 2.0f; data1[2] = 3.0f; data1[3] = 4.0f;
+    data1[0] = 2.0f; data1[1] = 2.0f; data1[2] = 3.0f; data1[3] = 4.0f;
 
     // Create second input tensor
-    CHECK_STATUS(ov_tensor_create_from_host_ptr(F32, input_shape, NULL, &input_tensor2));
+    CHECK_STATUS(ov_tensor_create(F32, input_shape, &input_tensor2));
     float* data2 = NULL;
     CHECK_STATUS(ov_tensor_data(input_tensor2, (void**)&data2));
     data2[0] = 5.0f; data2[1] = 6.0f; data2[2] = 7.0f; data2[3] = 8.0f;

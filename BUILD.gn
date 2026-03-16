@@ -59,17 +59,11 @@ config("openvino_config") {
 
   if (is_win) {
     defines += [ "_CRT_SECURE_NO_WARNINGS" ]
-    if (is_debug) {
-      defines += [ "OV_BUILD_POSTFIX=\"d\"" ]
-    } else {
+    #if (is_debug) {
+    #  defines += [ "OV_BUILD_POSTFIX=\"d\"" ]
+    #} else {
       defines += [ "OV_BUILD_POSTFIX=\"\"" ]
-    }
-  } else if (is_apple) {
-    if (is_debug) {
-      defines += [ "OV_BUILD_POSTFIX=\"d\"" ]
-    } else {
-      defines += [ "OV_BUILD_POSTFIX=\"\"" ]
-    }
+    #}
   } else {
     defines += [ "OV_BUILD_POSTFIX=\"\"" ]
   }
@@ -251,11 +245,11 @@ source_set("openvino_frontend_common") {
   ]
 
   if (is_win) {
-    if (is_debug) {
-      defines += [ "FRONTEND_LIB_SUFFIX=\"_frontendd.dll\"" ]
-    } else {
+    #if (is_debug) {
+    #  defines += [ "FRONTEND_LIB_SUFFIX=\"_frontendd.dll\"" ]
+    #} else {
       defines += [ "FRONTEND_LIB_SUFFIX=\"_frontend.dll\"" ]
-    }
+    #}
   } else if (is_apple) {
     defines += [ "FRONTEND_LIB_SUFFIX=\".dylib\"" ]
   } else {
@@ -1574,6 +1568,7 @@ source_set("openvino_core_sources") {
 
   sources = [
     "src/core/src/any.cpp",
+    "src/core/src/pattern/op/any_pattern.cpp",
     "src/core/src/attribute_adapter.cpp",
     "src/core/src/attribute_visitor.cpp",
     "src/core/src/axis_set.cpp",
